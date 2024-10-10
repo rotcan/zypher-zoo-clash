@@ -138,6 +138,7 @@ pub enum GameStatus{
     WaitingForOtherPlayerToPlayCard, //Both
     PlayerActionEnv, //Boths
     PlayerActionCard, //Boths
+    Finished, //Both
 }
 
 impl GameStatus{
@@ -174,7 +175,7 @@ impl GameStatus{
             GameStatus::WaitingForOtherPlayerToPlayCard => "Waiting for other player action".to_owned(),
             GameStatus::PlayerActionEnv => "Reveal Env Action".to_owned(),
             GameStatus::PlayerActionCard => "Play Card Action".to_owned(),
-    
+            GameStatus::Finished=>"Game Finished!".to_owned(),
         }
     }
 
@@ -211,6 +212,7 @@ impl GameStatus{
             28 => GameStatus::WaitingForOtherPlayerToPlayCard,
             29 => Self::PlayerActionEnv,
             30 => Self::PlayerActionCard,
+            31 => Self::Finished,
             _=>{panic!("GameStatus not mapping to i32")}
         }
     }

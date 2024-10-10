@@ -570,6 +570,7 @@ popup_draw_event: &mut EventWriter<PopupDrawEvent>,
                             
                             if updated_player_address==address_bytes{
                                 //Hand cards
+                                info!("RevealPlayersHand address_bytes={:?}",address_bytes);
                                 for hand in player_data.player_state.player_hand.iter() {
                                     let hand_idx=*hand as usize;
                                     if player_screen_data.current_hands.contains_key(&hand_idx) == false{
@@ -887,7 +888,7 @@ popup_draw_event: &mut EventWriter<PopupDrawEvent>,
                                 //Show popup , with create / join
                                 //This will keep on going
                                 //Do a loop for get all cards
-                                
+                                next_game_status.set(GameStatus::Finished);
                                 game.match_finished=true;
                                 // next_game_state.set(GameState::GameEnd);
                                 popup_draw_event.send(

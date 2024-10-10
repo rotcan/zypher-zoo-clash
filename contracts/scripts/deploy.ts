@@ -195,6 +195,12 @@ const directTopup=async()=>{
     console.log(await vrf.getConfig());
 }
 
+const topupVrfSubscription=async()=>{
+    let VRF= await hre.ethers.getContractFactory("GameVRF");
+    let vrf=await VRF.attach(VRFAddress);
+    const tx=await vrf.topUpSubscription({value:hre.ethers.parseEther("0.0005")});
+    console.log(await tx.wait());
+}
 const requestRandomWordsDirectly=async()=>{
     let VRF= await hre.ethers.getContractFactory("GameVRF");
     let vrf=await VRF.attach(VRFAddress);
@@ -444,7 +450,7 @@ const checkVRFCoordinatorContract=async()=>{
     "0x2f90357316c7f9f6fb7b3872e6e82d82fdc0e331d02c83bb208c30ba84280dc9",
 ];  
 
-deployGame().catch((error) => {
+topupVrfSubscription().catch((error) => {
           console.error(error);
           process.exitCode = 1;
         });

@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use crate::{MAIN_LAYER,OVERLAY_LAYER,POPUP_LAYER};
 use super::{create_node_bundle,create_styled_node_bundle,create_text_bundle,add_button,create_sprite_bundle,add_editable_button,DeckCardType,Player,
-    CardComponentType,CardFace,DeckType,
+    CardComponentType,CardFace,DeckType,OutlineArgs,
     GameStatus,MenuData,CardImages,StyleArgs,Game,CardComponent,add_active_card,CARD_HEIGHT,add_text,UiElementComponent,UiElement,InGameElements,
 };
 use crate::web3::{GameActions,PopupResult,ActionType,CardProp,get_player_index_by_address,Web3Actions,GameContractIxType,};
@@ -114,11 +114,17 @@ pub fn create_winner_popup(menu_data: &mut MenuData, commands: &mut  Commands,ga
     let layer=POPUP_LAYER;
     let parent_entity= commands.spawn(create_styled_node_bundle(StyleArgs{ width: Val::Percent(100.),
     height: Val::Percent(100.),direction: FlexDirection::Column, justify_content: JustifyContent::Center,
-    align_items: AlignItems::Center, position_type: PositionType::Absolute, layer , ..default()})).id();
+    align_items: AlignItems::Center, position_type: PositionType::Absolute,
+     layer , ..default()})).id();
 
     let modal_entity =   commands.spawn(create_styled_node_bundle(StyleArgs{ width: Val::Px(600.),
         height: Val::Px(500.),direction: FlexDirection::Column, justify_content: JustifyContent::Center,
-        align_items: AlignItems::Center, position_type: PositionType::Relative, background_color: BackgroundColor(Color::srgba(0.0,0.0,0.0,1.0)),
+        align_items: AlignItems::Center, position_type: PositionType::Relative, background_color: BackgroundColor(Color::srgba(0.1,0.1,0.1,1.0)),
+        outline: Some( OutlineArgs{
+            width: Val::Px(1.),
+            offset: Val::Px(1.),
+            color: Color::srgb(1.,1.,1.),
+        }),
          layer , ..default()})).id();
     
     let layout_entity = commands.spawn(create_styled_node_bundle(StyleArgs{ width: Val::Percent(100.),
@@ -156,7 +162,12 @@ pub fn create_winner_popup(menu_data: &mut MenuData, commands: &mut  Commands,ga
                     UiElementComponent::new(
                         UiElement::InGame(InGameElements::WinnerCard),
                         None));
-                update_winner_card(&game,commands,&card_images, layout_top_entity);
+                let text_entity_3=add_text(commands,format!("Waiting!").as_str(),StyleArgs{width: Val::Percent(100.),height: Val::Percent(100.),
+                    direction: FlexDirection::Row, justify_content: JustifyContent::Center, align_items: AlignItems::Center,
+                    overflow: Overflow::visible(),
+                layer,..default()});
+                commands.entity(layout_top_entity).add_child(text_entity_3);
+                // update_winner_card(&game,commands,&card_images, layout_top_entity);
             }else{
                 let text_entity=add_text(commands,format!("You lost. Try again, {}",address_bytes).as_str(),StyleArgs{width: Val::Percent(100.),height: Val::Percent(100.),
                     direction: FlexDirection::Row, justify_content: JustifyContent::Center, align_items: AlignItems::Center,
@@ -211,8 +222,17 @@ pub fn create_popup_entity( menu_data: &mut MenuData, commands: &mut  Commands,
         JustifyContent::Center,Some(AlignItems::Center),Overflow::visible(),None,Some(PositionType::Absolute),
         None,None,layer)).id();
     
-    let popup_screen = commands.spawn(create_node_bundle(width, height, FlexDirection::Column,
-        JustifyContent::Center, Some(AlignItems::Center),Overflow::visible(),Some(Color::srgba(0.0,0.0,0.0,1.0)),Some(PositionType::Relative),None,None,layer)).id();
+    let popup_screen = commands.spawn(create_styled_node_bundle(StyleArgs{width: Val::Percent(width),
+    height: Val::Percent(height),direction: FlexDirection::Column, justify_content: JustifyContent::Center,
+    align_items: AlignItems::Center, position_type: PositionType::Relative, background_color: BackgroundColor(Color::srgba(0.1,0.1,0.1,1.0)),
+    outline: Some( OutlineArgs{
+        width: Val::Px(1.),
+        offset: Val::Px(1.),
+        color: Color::srgb(1.,1.,1.)
+    }),layer,..default() }
+        // width, height, FlexDirection::Column,
+        // JustifyContent::Center, Some(AlignItems::Center),Overflow::visible(),Some(Color::srgba(0.0,0.0,0.0,1.0)),Some(PositionType::Relative),None,None,layer
+        )).id();
     commands.entity(parent).add_child(popup_screen);
     
     let title_node_entity = commands.spawn(create_node_bundle(100.0, 50.0, FlexDirection::Row,

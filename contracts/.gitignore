@@ -4,3 +4,4 @@
 /typechain-types
 secret.json
 package-lock.json
+**/*.bak

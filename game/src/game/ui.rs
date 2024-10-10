@@ -252,9 +252,9 @@ impl MenuData{
 
 #[derive(Clone,Debug)]
 pub struct OutlineArgs{
-    width: Val,
-    offset: Val,
-    color: Color
+    pub width: Val,
+    pub offset: Val,
+    pub color: Color
 }
 
 impl Default for OutlineArgs{
@@ -1226,13 +1226,13 @@ fn add_status_button(commands: &mut Commands,entity: Entity, new_status: &GameSt
             let reveal_env= add_button(commands,GameStatus::PlayerActionEnv,
                 ActionType::Web3Actions(Web3Actions::GameContractAction(GameContractIxType::PlayerActionEnv)),
                // 50.0,100.0,Some(4.0),Some(4.0),MAIN_LAYER
-               StyleArgs{width:Val::Percent(50.),height: Val::Percent(100.),layer,..StyleArgs::button_style()} 
+               StyleArgs{width:Val::Percent(50.),height: Val::Percent(80.),layer,..StyleArgs::button_style()} 
                );
             commands.entity(area_entity).add_child(reveal_env);
             let reveal_card= add_button(commands,GameStatus::PlayerActionCard,
                 ActionType::Web3Actions(Web3Actions::GameContractAction(GameContractIxType::PlayerActionCard)),
                 //50.0,100.0,Some(4.0),Some(4.0),MAIN_LAYER
-                StyleArgs{width:Val::Percent(50.),height: Val::Percent(100.),layer,..StyleArgs::button_style()} 
+                StyleArgs{width:Val::Percent(50.),height: Val::Percent(80.),layer,..StyleArgs::button_style()} 
                 );
             commands.entity(area_entity).add_child(reveal_card);
             commands.entity(entity).add_child(area_entity);
@@ -1257,7 +1257,8 @@ fn add_status_button(commands: &mut Commands,entity: Entity, new_status: &GameSt
         GameStatus::WaitingForPlayerToShuffleCards |
         GameStatus::WaitingForJointKey |
         GameStatus::WaitingForRevealCards |
-        GameStatus::WaitingForOtherPlayerToPlayCard => {
+        GameStatus::WaitingForOtherPlayerToPlayCard |
+        GameStatus::Finished => {
             info!("in game add status button new_status={:?}",new_status);
             let text=add_text(commands,new_status.value().as_str(),StyleArgs{width: Val::Percent(100.),height: Val::Percent(100.),
                 direction: FlexDirection::Row, justify_content: JustifyContent::Center, align_items: AlignItems::Center, overflow: Overflow::visible(),

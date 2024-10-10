@@ -1,0 +1,65 @@
+[package]
+name = "zshuffle"
+description = "Encrypt and shuffle cards, resulting in a randomly ordered deck"
+keywords = ["zkp", "shuffle", "game"]
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "gen-params"
+path = "src/gen_params/setup.rs"
+required-features = ["gen"]
+
+[dependencies]
+uzkge = { workspace = true, features = ["shuffle"] }
+
+ark-ec.workspace = true
+ark-ff.workspace = true
+ark-std.workspace = true
+ark-poly.workspace = true
+ark-serialize.workspace = true
+ark-bn254.workspace = true
+ark-ed-on-bn254 = { workspace = true, features = ["r1cs"] }
+ark-groth16.workspace = true
+ark-r1cs-std.workspace = true
+ark-relations.workspace = true
+ark-snark.workspace = true
+bincode.workspace = true
+rand_core = { workspace = true, features = ["getrandom"] }
+rand_chacha.workspace = true
+rayon = { workspace = true, optional = true}
+serde.workspace = true
+structopt =  { workspace = true, optional = true}
+thiserror.workspace = true
+hex.workspace = true
+once_cell.workspace = true
+log = "0.4.22"
+getrandom.workspace = true
+
+[dev-dependencies]
+hex.workspace = true
+chrono="0.4.19"
+
+[features]
+default = ["std", "parallel"]
+std = [
+  "ark-ec/std",
+  "ark-std/std",
+  "ark-ff/std",
+  "ark-bn254/std",
+  "uzkge/std",
+  "ark-groth16/std"
+]
+parallel = [
+  "rayon",
+  "ark-std/parallel",
+  "ark-ff/parallel",
+  "ark-ec/parallel",
+  "uzkge/parallel",
+  "ark-groth16/parallel"
+]
+no_vk = []
+gen = ["uzkge/gen", "parallel", "structopt"]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
