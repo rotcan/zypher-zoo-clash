@@ -1,0 +1,55 @@
+[workspace]
+members = [
+  "bevy-web3", 
+  #"bevy-z4",
+  "game","shuffle",
+  "rust-web3"
+  #,"zshuffle-wasm"
+  #, "temp", "game-test"
+]
+resolver = "2"
+
+[workspace.package]
+name = "ztcg"
+version = "0.1.0"
+edition = "2021"
+license= "MIT"
+
+
+[workspace.dependencies]
+async-channel = "2.3.1"
+bevy = {version="0.14.0",features=["bevy_text"]}
+bevy_egui = "0.28.0"
+bevy_interact_2d = "0.9.0"
+bevy_prototype_lyon = "0.12.0"
+bevy_tweening = "0.11.0"
+serde_json = "1.0.121"
+serde ={version= "1.0.209",features = ["derive"]}
+
+uzkge = { version = "0.1.2",  default-features = false }
+reqwest = {version="0.12.5",features=["json"]}
+
+ark-ec = { version = "0.4", default-features = false, package = "ark-ec-zypher" }
+ark-ff = { version = "0.4", default-features = false, features = ["asm"], package = "ark-ff-zypher" }
+ark-poly = { version = "0.4", default-features = false, package = "ark-poly-zypher" }
+ark-serialize = { version = "0.4", default-features = false, features = ["derive"], package = "ark-serialize-zypher" }
+ark-std = { version = "0.4", default-features = false, package = "ark-std-zypher" }
+ark-bn254 = { version = "0.4", default-features = false, features = ["curve"], package = "ark-bn254-zypher" }
+ark-ed-on-bn254 = { version = "0.4", default-features = false, package = "ark-ed-on-bn254-zypher" }
+ark-relations = { version = "0.4", default-features = false, package = "ark-relations-zypher" }
+ark-r1cs-std = { version = "0.4", default-features = false, package = "ark-r1cs-std-zypher" }
+ark-snark = { version = "0.4", default-features = false, package = "ark-snark-zypher" }
+ark-groth16 = { version = "0.4", default-features = false, package = "ark-groth16-zypher" }
+thiserror = "1.0.63"
+once_cell = "1.19.0"
+bincode = "1.3"
+rand_core = "0.6"
+rand_chacha = "0.3"
+rayon = "1.7"
+structopt =  "0.3"
+hex = "0.4.3"
+wasm-bindgen={version="=0.2.92"}
+serde-wasm-bindgen = "0.6.5"
+
+# wasm
+getrandom = { version = "0.2", features = ["js"] }

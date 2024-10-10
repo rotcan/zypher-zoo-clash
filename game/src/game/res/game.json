@@ -1,0 +1,1324 @@
+[
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_card",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint8",
+        "name": "playerIndex",
+        "type": "uint8"
+      }
+    ],
+    "name": "AlreadyRevealedByPlayer",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint8",
+        "name": "cardIndex",
+        "type": "uint8"
+      }
+    ],
+    "name": "AlreadyShownCard",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "shuffleCount",
+        "type": "uint256"
+      }
+    ],
+    "name": "CannotMaskAlreadyMaskedDeck",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "CannotPlayCardWhenEnvIsSelected",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "expectedState",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint8",
+        "name": "actualState",
+        "type": "uint8"
+      }
+    ],
+    "name": "CannotShowPlayerCards",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "shuffleCount",
+        "type": "uint256"
+      }
+    ],
+    "name": "CannotShuffleUnmaskedDeck",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "e",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "a",
+        "type": "address"
+      }
+    ],
+    "name": "CardOwnerMismatch",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint8",
+        "name": "expectedCount",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint8",
+        "name": "actualCount",
+        "type": "uint8"
+      }
+    ],
+    "name": "CardRevealCountError",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "EnvCardCanBeUpdatedOncePerTurn",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "state",
+        "type": "uint256"
+      }
+    ],
+    "name": "FailedToShuffleEnvDeck",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "player",
+        "type": "address"
+      }
+    ],
+    "name": "InvalidDeck",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint8",
+        "name": "playerIndex",
+        "type": "uint8"
+      }
+    ],
+    "name": "InvalidPubkey",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "InvalidRevealToken",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "InvalidShuffle",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "expectedState",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "actualState",
+        "type": "uint256"
+      }
+    ],
+    "name": "InvalidState",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "player",
+        "type": "address"
+      }
+    ],
+    "name": "MatchAlreadyExistsForPlayer",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "matchIndex",
+        "type": "uint256"
+      }
+    ],
+    "name": "MatchDoesNotExists",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "expected",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "actual",
+        "type": "address"
+      }
+    ],
+    "name": "NotCreator",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      }
+    ],
+    "name": "OwnableInvalidOwner",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
+    "name": "OwnableUnauthorizedAccount",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "expected",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "actual",
+        "type": "uint256"
+      }
+    ],
+    "name": "PayableError",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "player",
+        "type": "address"
+      }
+    ],
+    "name": "PlayerAlreadyInit",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "PlayerNotPartOfMatch",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint8",
+        "name": "expectedTurn",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint8",
+        "name": "actualTurn",
+        "type": "uint8"
+      }
+    ],
+    "name": "PlayerTurnError",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "ShuffleDeckError",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "TurnAlreadyStarted",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "WaitingForFirstPlayerDeck",
+    "type": "error"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "size",
+        "type": "uint256"
+      }
+    ],
+    "name": "EnvDeckCreated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "previousOwner",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "OwnershipTransferred",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "requestId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint32",
+        "name": "numWords",
+        "type": "uint32"
+      }
+    ],
+    "name": "RequestSent",
+    "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "INIT_MINT_COUNT",
+    "outputs": [
+      {
+        "internalType": "uint32",
+        "name": "",
+        "type": "uint32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "_reveal",
+    "outputs": [
+      {
+        "internalType": "contract ZgRevealVerifier",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "_shuffleService",
+    "outputs": [
+      {
+        "internalType": "contract ShuffleService",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "_vrf",
+    "outputs": [
+      {
+        "internalType": "contract IVRF",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "x",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "y",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct Point",
+        "name": "publicKey",
+        "type": "tuple"
+      },
+      {
+        "internalType": "uint8",
+        "name": "playerCount",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint256",
+        "name": "topup",
+        "type": "uint256"
+      }
+    ],
+    "name": "createNewMatch",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "currentMatch",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "matchIndex",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "_randomWords",
+        "type": "uint256[]"
+      }
+    ],
+    "name": "envCardCallback",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "envMatchCards",
+    "outputs": [
+      {
+        "internalType": "enum IState.EnvCardType",
+        "name": "cardType",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint8",
+        "name": "card",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "matchIndex",
+        "type": "uint256"
+      }
+    ],
+    "name": "getMatchEnvCards",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "enum IState.EnvCardType",
+            "name": "cardType",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint8",
+            "name": "card",
+            "type": "uint8"
+          }
+        ],
+        "internalType": "struct IState.EnvCard[]",
+        "name": "",
+        "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "matchIndex",
+        "type": "uint256"
+      }
+    ],
+    "name": "getPKC",
+    "outputs": [
+      {
+        "internalType": "uint256[24]",
+        "name": "",
+        "type": "uint256[24]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "matchIndex",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "playerAddress",
+        "type": "address"
+      }
+    ],
+    "name": "getPlayerData",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256[]",
+            "name": "originalCards",
+            "type": "uint256[]"
+          },
+          {
+            "internalType": "address",
+            "name": "player",
+            "type": "address"
+          },
+          {
+            "internalType": "bool",
+            "name": "done",
+            "type": "bool"
+          },
+          {
+            "components": [
+              {
+                "internalType": "uint256",
+                "name": "x",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "y",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct Point",
+            "name": "publicKey",
+            "type": "tuple"
+          },
+          {
+            "internalType": "uint8",
+            "name": "playerIndex",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint256[4][]",
+            "name": "playerDeck",
+            "type": "uint256[4][]"
+          },
+          {
+            "internalType": "uint256[2][][]",
+            "name": "playerReveals",
+            "type": "uint256[2][][]"
+          },
+          {
+            "internalType": "uint8",
+            "name": "playerRevealCount",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint256",
+            "name": "playerRevealProofIndex",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint8[]",
+            "name": "playerHand",
+            "type": "uint8[]"
+          },
+          {
+            "internalType": "uint256",
+            "name": "playerHandIndex",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "playerBoard",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "position",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "nextRoundPlayerRevealCount",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct RaceGame.PlayerMatchData",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "matchIndex",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint8",
+        "name": "playerIndex",
+        "type": "uint8"
+      }
+    ],
+    "name": "getPlayerDataByIndex",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256[]",
+            "name": "originalCards",
+            "type": "uint256[]"
+          },
+          {
+            "internalType": "address",
+            "name": "player",
+            "type": "address"
+          },
+          {
+            "internalType": "bool",
+            "name": "done",
+            "type": "bool"
+          },
+          {
+            "components": [
+              {
+                "internalType": "uint256",
+                "name": "x",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "y",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct Point",
+            "name": "publicKey",
+            "type": "tuple"
+          },
+          {
+            "internalType": "uint8",
+            "name": "playerIndex",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint256[4][]",
+            "name": "playerDeck",
+            "type": "uint256[4][]"
+          },
+          {
+            "internalType": "uint256[2][][]",
+            "name": "playerReveals",
+            "type": "uint256[2][][]"
+          },
+          {
+            "internalType": "uint8",
+            "name": "playerRevealCount",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint256",
+            "name": "playerRevealProofIndex",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint8[]",
+            "name": "playerHand",
+            "type": "uint8[]"
+          },
+          {
+            "internalType": "uint256",
+            "name": "playerHandIndex",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "playerBoard",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "position",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "nextRoundPlayerRevealCount",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct RaceGame.PlayerMatchData",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "topup",
+        "type": "uint256"
+      }
+    ],
+    "name": "initPlayer",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "matchIndex",
+        "type": "uint256"
+      },
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "x",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "y",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct Point",
+        "name": "publicKey",
+        "type": "tuple"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "originalCardIndex",
+        "type": "uint256[]"
+      }
+    ],
+    "name": "joinMatch",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "matchIndex",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256[4][]",
+        "name": "maskedDeck",
+        "type": "uint256[4][]"
+      },
+      {
+        "internalType": "uint256[4][]",
+        "name": "shuffledDeck",
+        "type": "uint256[4][]"
+      },
+      {
+        "internalType": "bytes",
+        "name": "proof",
+        "type": "bytes"
+      }
+    ],
+    "name": "maskEnvDeck",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "matches",
+    "outputs": [
+      {
+        "internalType": "enum IState.MatchState",
+        "name": "state",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint8",
+        "name": "playerCount",
+        "type": "uint8"
+      },
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "x",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "y",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct Point",
+        "name": "gameKey",
+        "type": "tuple"
+      },
+      {
+        "internalType": "uint8",
+        "name": "playerTurn",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint8",
+        "name": "playerTurnType",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint8",
+        "name": "revealEnv",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint8",
+        "name": "isFinished",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint8",
+        "name": "turnStart",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint8",
+        "name": "rounds",
+        "type": "uint8"
+      },
+      {
+        "internalType": "address",
+        "name": "winner",
+        "type": "address"
+      },
+      {
+        "components": [
+          {
+            "internalType": "uint256[4][]",
+            "name": "cards",
+            "type": "uint256[4][]"
+          },
+          {
+            "internalType": "uint256[2][][]",
+            "name": "envReveals",
+            "type": "uint256[2][][]"
+          },
+          {
+            "internalType": "uint8",
+            "name": "envRevealIndex",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint256",
+            "name": "envBoard",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "shuffleCount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "playerRevealProofIndex",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct RaceGame.EnvDeck",
+        "name": "envDeck",
+        "type": "tuple"
+      },
+      {
+        "internalType": "address",
+        "name": "creator",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "to",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "_randomWords",
+        "type": "uint256[]"
+      },
+      {
+        "internalType": "uint8",
+        "name": "minAllowedRarity",
+        "type": "uint8"
+      }
+    ],
+    "name": "mintCallback",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "owner",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "matchIndex",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint8",
+        "name": "playerHandIndex",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint256[2]",
+        "name": "revealToken",
+        "type": "uint256[2]"
+      },
+      {
+        "internalType": "uint256[8]",
+        "name": "proof",
+        "type": "uint256[8]"
+      }
+    ],
+    "name": "playCardOnDeck",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "matchIndex",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint8",
+        "name": "showEnvCard",
+        "type": "uint8"
+      }
+    ],
+    "name": "playerAction",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "renounceOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "matchIndex",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "originalCardIndex",
+        "type": "uint256[]"
+      }
+    ],
+    "name": "setCreatorDeck",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "matchIndex",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256[24]",
+        "name": "pkc",
+        "type": "uint256[24]"
+      }
+    ],
+    "name": "setJointKey",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "vrf",
+        "type": "address"
+      }
+    ],
+    "name": "setVRF",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract ShuffleService",
+        "name": "shuffle",
+        "type": "address"
+      },
+      {
+        "internalType": "contract ZgRevealVerifier",
+        "name": "reveal",
+        "type": "address"
+      }
+    ],
+    "name": "setVerifiers",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "matchIndex",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256[2]",
+        "name": "revealToken",
+        "type": "uint256[2]"
+      },
+      {
+        "internalType": "uint256[8]",
+        "name": "proof",
+        "type": "uint256[8]"
+      }
+    ],
+    "name": "showNextEnvCard",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "matchIndex",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint8",
+        "name": "playerIndex",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint8",
+        "name": "cardCount",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint256[2][]",
+        "name": "revealTokens",
+        "type": "uint256[2][]"
+      },
+      {
+        "internalType": "uint256[8][]",
+        "name": "proofs",
+        "type": "uint256[8][]"
+      }
+    ],
+    "name": "showOpponentCards",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "matchIndex",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256[4][]",
+        "name": "currentDeck",
+        "type": "uint256[4][]"
+      },
+      {
+        "internalType": "uint256[4][]",
+        "name": "shuffledDeck",
+        "type": "uint256[4][]"
+      },
+      {
+        "internalType": "bytes",
+        "name": "proof",
+        "type": "bytes"
+      }
+    ],
+    "name": "shuffleEnvDeck",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "matchIndex",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "playerAddress",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256[4][]",
+        "name": "currentDeck",
+        "type": "uint256[4][]"
+      },
+      {
+        "internalType": "uint256[4][]",
+        "name": "shuffledDeck",
+        "type": "uint256[4][]"
+      },
+      {
+        "internalType": "bytes",
+        "name": "proof",
+        "type": "bytes"
+      }
+    ],
+    "name": "shuffleOtherDeck",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "matchIndex",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256[4][]",
+        "name": "maskedDeck",
+        "type": "uint256[4][]"
+      },
+      {
+        "internalType": "uint256[4][]",
+        "name": "shuffledDeck",
+        "type": "uint256[4][]"
+      },
+      {
+        "internalType": "bytes",
+        "name": "proof",
+        "type": "bytes"
+      }
+    ],
+    "name": "submitDeck",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "transferOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "cardSetAddress",
+        "type": "address"
+      }
+    ],
+    "name": "updateCardSet",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "winCount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

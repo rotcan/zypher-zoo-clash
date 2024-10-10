@@ -1,0 +1,21 @@
+[package]
+name = "bevy-web3"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bevy = {workspace= true}
+async-channel = {workspace=true}
+derive_more = "0.99.18"
+serde_json = {workspace= true}
+web3 = { path="../rust-web3", default-features = false, features = ["wasm","eip-1193","http"] }
+hex = "0.4.3"
+async-std = "1.12.0"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = {workspace=true}
+serde-wasm-bindgen= {workspace=true}
+
+[dev-dependencies]
+downcast-rs = "1.2.1"
+

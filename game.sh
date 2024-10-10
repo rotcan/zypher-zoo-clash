@@ -1,0 +1,1 @@
+cargo $1 -p game --target wasm32-unknown-unknown
