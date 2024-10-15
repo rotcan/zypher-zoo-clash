@@ -1,9 +1,9 @@
-use bevy_web3::contract::{EthContract};
+use bevy_web3::plugin::{EthContract};
 use bevy::{
     prelude::*,
 };
 use bevy_web3::types::{H160};
-use bevy_web3::contract::tokens::Uint;
+use bevy_web3::plugin::tokens::Uint;
 use crate::web3::{PlayerState,MatchState,PlayerCardData,CardProp,GameContractIxType,EnvCard};
 use std::collections::{HashMap,BTreeMap};
 use crate::error::GameError;

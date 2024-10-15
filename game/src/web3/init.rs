@@ -3,8 +3,8 @@ use crate::{
     style::{HOVERED_BUTTON, NORMAL_BUTTON},
 };
 use bevy_web3::{
-    plugin::{WalletChannel,TransactionResult},
-    contract::{get_address_from_string,tokens::{ Tokenizable}},
+    plugin::{WalletChannel,TransactionResult,get_address_from_string,tokens::{ Tokenizable},
+    tokens::Uint},
     error::Error as Web3Error};
 use crate::{Game,
     game::{GameStatus,process_ui_query,UiElement,BeforeGameElements,PopupDrawEvent,PopupData,hide_popup,RevealData,RequestExtraData,
@@ -21,7 +21,6 @@ use super::{WalletState,ContractState,GameContractIxType, ContractType,GameActio
     send_txn_shuffle_others_deck,};
 use std::fmt;
 use crate::error::GameError;
-use bevy_web3::contract::tokens::Uint;
 use bevy_pkv::PkvStore;
 use bevy_text_edit::{ TextEditable};
 use bevy_web3::types::U256;
@@ -559,11 +558,13 @@ pub fn delegate_txn_call(
     for event in delegate_txn_event.read(){
         match event{
             DelegateTxnSendEvent::LoadMatch=>{
-                let data = game.game_contract.contract.abi()
-                .function(GameContractViewActionType::GetMatch.get_view_method().as_str()).unwrap()
-                .encode_input(&[
-                    game.match_index.into_token()
-                ]).unwrap(); 
+                // let data = game.game_contract.contract.abi()
+                // .function(GameContractViewActionType::GetMatch.get_view_method().as_str()).unwrap()
+                // .encode_input(&[
+                //     game.match_index.into_token()
+                // ]).unwrap(); 
+                let data = game.game_contract.encode_input(GameContractViewActionType::GetMatch.get_view_method().as_str(),
+                &[game.match_index.into_token()]).unwrap();
                 contract_events_writer.send(CallContractEvent{contract: game.game_contract.clone(), 
                     method:Web3ViewEvents::GameContractViewActionType(GameContractViewActionType::GetMatch), 
                     //params: CallContractParam::Single(game.match_index.into_token())
@@ -858,11 +859,13 @@ pub fn wallet_account(
                 next_wallet_state.set(WalletState::Connected);
                 // next_state.set(GameState::Listing);
                 //Send get cards event
-                let data = game.card_contract.contract.abi()
-                .function(CardContractViewActionType::GetAllCards.get_view_method().as_str()).unwrap()
-                .encode_input(&[
-                    get_address_from_string(&hex::encode(account)).unwrap().into_token()
-                ]).unwrap(); 
+                // let data = game.card_contract.contract.abi()
+                // .function(CardContractViewActionType::GetAllCards.get_view_method().as_str()).unwrap()
+                // .encode_input(&[
+                //     get_address_from_string(&hex::encode(account)).unwrap().into_token()
+                // ]).unwrap(); 
+                let data = game.card_contract.encode_input(CardContractViewActionType::GetAllCards.get_view_method().as_str(),
+                &[get_address_from_string(&hex::encode(account)).unwrap().into_token()]).unwrap();
                 
                 contract_events_writer.send(CallContractEvent{contract: game.card_contract.clone(), 
                 method:Web3ViewEvents::CardContractViewActionType(CardContractViewActionType::GetAllCards), 
@@ -992,11 +995,13 @@ pub fn delegate_txn_response_call(
                      
                     DelegateTxnResponseType::CreateNewMatch |
                     DelegateTxnResponseType::JoinMatch=>{
-                        let data = game.game_contract.contract.abi()
-                        .function(GameContractViewActionType::GetCurrentMatch.get_view_method().as_str()).unwrap()
-                        .encode_input(&[
-                            get_address_from_string(&from).unwrap().into_token()
-                        ]).unwrap(); 
+                        // let data = game.game_contract.contract.abi()
+                        // .function(GameContractViewActionType::GetCurrentMatch.get_view_method().as_str()).unwrap()
+                        // .encode_input(&[
+                        //     get_address_from_string(&from).unwrap().into_token()
+                        // ]).unwrap(); 
+                        let data = game.game_contract.encode_input(GameContractViewActionType::GetCurrentMatch.get_view_method().as_str(),
+                        &[get_address_from_string(&from).unwrap().into_token()]).unwrap();
                         info!("CreateNewMatch or joinmatch delegate data={:?}",data);
                         contract_events_writer.send(CallContractEvent{contract: game.game_contract.clone(), 
                             method:Web3ViewEvents::GameContractViewActionType(GameContractViewActionType::GetCurrentMatch), 
