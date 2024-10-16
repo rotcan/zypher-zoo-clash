@@ -6,3 +6,6 @@ bevy-z4
 .vscode
 todo
 zshuffle
+Cargo.lock
+gh-pages
+rust-web3

@@ -2,6 +2,7 @@ use web3::contract::{Contract,tokens::{Detokenize}
 //    tokens::{Detokenize,Tokenizable},Error as Web3Error
 };
 use web3::api::{Eth,Namespace};
+use web3::ethabi::Contract as Abi;
 use crate::error::{Error,Web3Result};
 use web3::types::{Address,H160,CallRequest};
 use web3::transports::http::Http;
@@ -19,10 +20,12 @@ use crate::contract::tokens::{Token};
 use std::fmt::Debug;
 //use itertools::Itertools;
 
-type HttpContract = web3::contract::Contract<Http>;
+//type HttpContract = web3::contract::Contract<Http>;
 #[derive(Debug,Clone)]
 pub struct EthContract{
-    pub contract: HttpContract,
+    pub address: H160,
+    pub abi: Abi,
+    pub rpc_url: String,
 }
 
 impl EthContract{
@@ -34,10 +37,12 @@ impl EthContract{
             &address
         };
         let address_bytes=Address::from_slice(&hex::decode(&address)?);
-        let transport= Http::new(&rpc_url)?;
-        let eth_api=Eth::new(transport);
+        // let transport= Http::new(&rpc_url)?;
+        // let eth_api=Eth::new(transport);
         Ok(Self{
-            contract: Contract::from_json(eth_api,address_bytes,json)?
+            rpc_url,
+            address: address_bytes,
+            abi: Contract::load(json)?
         })
     }
 
@@ -45,10 +50,7 @@ impl EthContract{
     //where P : Tokenize
     {
         let func= self.contract.abi().function(func)?;
-        //info!("func input params = {:?}",func.inputs);
         let tokens =params;
-        //info!("tokens={:?}",&tokens);
-        //info!("encode data params = {:?}",func.inputs.iter().map(|p| p.kind.clone()).collect::<Vec<_>>());
         let data = func.encode_input(&tokens)?;
         Ok(data)
     }
