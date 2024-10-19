@@ -1,7 +1,6 @@
 use bevy::prelude::*;
 use bevy_web3::{
-    contract::{ContractChannelResource,RecvContractResponse,get_address_from_string,
-        
+    plugin::{get_address_from_string,WalletChannel,CallResponse,
         tokens::{ Token,Tokenizable,Uint},EthContract},
     error::Error as Web3Error,
 };
@@ -87,7 +86,7 @@ pub enum DelegateTxnSendEvent{
 // }
 
 pub fn do_contract_call(
-    contract_channel: Res<ContractChannelResource>,
+    contract_channel: Res<WalletChannel>,
     // mut next_state: ResMut<NextState<ContractState>>,
     mut contract_call_events: EventReader<CallContractEvent>){
     for event in contract_call_events.read(){
@@ -126,7 +125,7 @@ pub fn do_contract_call(
 }
  
 //Bevy system
-pub fn recv_contract_response(contract_channel: ResMut<ContractChannelResource>,
+pub fn recv_contract_response(contract_channel: ResMut<WalletChannel>,
     mut next_state: ResMut<NextState<ContractState>>,
     //state: Res<State<ContractState>>,
     mut game: ResMut<Game>,
@@ -175,7 +174,7 @@ pub fn recv_contract_response(contract_channel: ResMut<ContractChannelResource>,
     // }
 }
 
-pub fn process_contract_response(res: &RecvContractResponse,
+pub fn process_contract_response(res: &CallResponse,
     contract_events_writer: &mut EventWriter<CallContractEvent>,
     game: &mut Game,
     commands: &mut Commands,
@@ -202,9 +201,10 @@ pub fn process_contract_response(res: &RecvContractResponse,
     match address.as_str(){
         GAME_CARD_CONTRACT_ADDRESS=>{
             let method=CardContractViewActionType::from(method_name);
+            let decoded_result = game.card_contract.decode_output(method.get_view_method().as_str(), &res.result).unwrap();
             match method{
                 CardContractViewActionType::GetAllCards=>{
-                    match &res.result{
+                    match &decoded_result{
                         Token::Array(all_cards)=>{
                             //Keep on doing call
                             if q.is_empty(){
@@ -217,9 +217,11 @@ pub fn process_contract_response(res: &RecvContractResponse,
                             //if processed_cards < MIN_CARD_COUNT as usize {
                                 params.as_ref().map(|m| {
                                     
-                                    let data = game.card_contract.contract.abi()
-                                        .function(CardContractViewActionType::GetAllCards.get_view_method().as_str()).unwrap()
-                                        .decode_input(&m[4..]).unwrap(); 
+                                    // let data = game.card_contract.contract.abi()
+                                    //     .function(CardContractViewActionType::GetAllCards.get_view_method().as_str()).unwrap()
+                                    //     .decode_input(&m[4..]).unwrap(); 
+                                    let data = game.card_contract.decode_input(CardContractViewActionType::GetAllCards.get_view_method().as_str(),
+                                        &m[4..]).unwrap();
                                     // let address=data[0]
                                     let account_bytes=data[0].clone().into_address().unwrap();
                                     let account = get_address_from_bytes(&account_bytes);
@@ -242,11 +244,13 @@ pub fn process_contract_response(res: &RecvContractResponse,
                                             game.players_data.push(player_data);
                                         };
                                         //Get Card Props
-                                        let data = game.card_contract.contract.abi()
-                                        .function(CardContractViewActionType::GetPlayerCardProps.get_view_method().as_str()).unwrap()
-                                        .encode_input(&[
-                                            get_address_from_string(&account).unwrap().into_token()
-                                        ]).unwrap(); 
+                                        // let data = game.card_contract.contract.abi()
+                                        // .function(CardContractViewActionType::GetPlayerCardProps.get_view_method().as_str()).unwrap()
+                                        // .encode_input(&[
+                                        //     get_address_from_string(&account).unwrap().into_token()
+                                        // ]).unwrap(); 
+                                        let data = game.card_contract.encode_input(CardContractViewActionType::GetPlayerCardProps.get_view_method().as_str(),
+                                        &[get_address_from_string(&account).unwrap().into_token()]).unwrap();
                                         
                                         contract_events_writer.send(CallContractEvent{contract: game.card_contract.clone(), 
                                             method:Web3ViewEvents::CardContractViewActionType(CardContractViewActionType::GetPlayerCardProps), 
@@ -256,11 +260,13 @@ pub fn process_contract_response(res: &RecvContractResponse,
 
                                         if game.match_finished == false{
                                             //Check And Get Current match of player
-                                            let data = game.game_contract.contract.abi()
-                                            .function(GameContractViewActionType::GetCurrentMatch.get_view_method().as_str()).unwrap()
-                                            .encode_input(&[
-                                                get_address_from_string(&account).unwrap().into_token()
-                                            ]).unwrap(); 
+                                            // let data = game.game_contract.contract.abi()
+                                            // .function(GameContractViewActionType::GetCurrentMatch.get_view_method().as_str()).unwrap()
+                                            // .encode_input(&[
+                                            //     get_address_from_string(&account).unwrap().into_token()
+                                            // ]).unwrap(); 
+                                            let data = game.game_contract.encode_input(GameContractViewActionType::GetCurrentMatch.get_view_method().as_str(),
+                                            &[get_address_from_string(&account).unwrap().into_token()]).unwrap();
                                             contract_events_writer.send(CallContractEvent{contract: game.game_contract.clone(), 
                                                 method:Web3ViewEvents::GameContractViewActionType(GameContractViewActionType::GetCurrentMatch), 
                                             //    params: CallContractParam::Data(get_address_from_string(&account).unwrap().into_token())
@@ -306,7 +312,7 @@ pub fn process_contract_response(res: &RecvContractResponse,
                 },
            
                 CardContractViewActionType::GetPlayerCardProps=>{
-                    match &res.result{
+                    match &decoded_result{
                         Token::Tuple(val)=>{
                             // info!("GetPlayerCardProps val={:?}",val);
                             //let address_bytes=game.account_bytes.clone().unwrap();
@@ -314,9 +320,11 @@ pub fn process_contract_response(res: &RecvContractResponse,
                             // if let Some(index)=get_player_index_by_address(&game, &address_bytes) {
                             params.as_ref().map(|m| {
                                 
-                                let data = game.card_contract.contract.abi()
-                                    .function(CardContractViewActionType::GetPlayerCardProps.get_view_method().as_str()).unwrap()
-                                    .decode_input(&m[4..]).unwrap(); 
+                                // let data = game.card_contract.contract.abi()
+                                //     .function(CardContractViewActionType::GetPlayerCardProps.get_view_method().as_str()).unwrap()
+                                //     .decode_input(&m[4..]).unwrap(); 
+                                let data = game.card_contract.decode_input(CardContractViewActionType::GetPlayerCardProps.get_view_method().as_str(),
+                                &m[4..]).unwrap();
 
                                 let address_bytes=data[0].clone().into_address().unwrap();
                                 // let account = get_address_from_bytes(&address_bytes);
@@ -373,12 +381,13 @@ pub fn process_contract_response(res: &RecvContractResponse,
         },
         GAME_CONTRACT_ADDRESS=>{
             let method=GameContractViewActionType::from(method_name);
+            let decoded_result = game.game_contract.decode_output(method.get_view_method().as_str(), &res.result).unwrap();
             // info!("{method:?} res.result={:?}",res.result);
             match method{
                 GameContractViewActionType::GetCurrentMatch=>{
-                    match &res.result{
+                    match &decoded_result{
                         Token::Uint(val)=>{
-                            info!("GetCurrentMatch val={:?} ",val);
+                            // info!("GetCurrentMatch val={:?} ",val);
                             //If match is there get match data
                             let match_index=val;
                             if match_index>&Uint::zero() {
@@ -391,12 +400,14 @@ pub fn process_contract_response(res: &RecvContractResponse,
                                
                             }
                         },
-                        _=>{},
+                        _=>{
+                            error!("GetCurrentMatch parse fail");
+                        },
                     }
                 },
                 GameContractViewActionType::GetMatch=>{
                     //info!("Get match");
-                    match &res.result{
+                    match &decoded_result{
                         Token::Tuple(val)=>{
                             if val[1].clone().into_uint().unwrap().as_u64()>0 {
                                 let address_bytes=game.account_bytes.clone().unwrap();
@@ -441,12 +452,14 @@ pub fn process_contract_response(res: &RecvContractResponse,
                             }
                             
                         },
-                        _=>{},
+                        _=>{
+                            error!("Match state parse fail");
+                        },
                     }
                 },
                 GameContractViewActionType::GetPlayerData |
                 GameContractViewActionType::GetPlayerDataByIndex=>{
-                    match &res.result{
+                    match &decoded_result{
                         Token::Tuple(val)=>{
                             //Todo! insert other players in game players_data
                             // info!("GetPlayerState val={:?}",val);
@@ -458,11 +471,13 @@ pub fn process_contract_response(res: &RecvContractResponse,
                                     //Get All cards once for other players
                                     if get_player_index_by_address(&game, &contract_player_state.player).is_none() {
                                         //Get cards
-                                        let data = game.card_contract.contract.abi()
-                                        .function(CardContractViewActionType::GetAllCards.get_view_method().as_str()).unwrap()
-                                        .encode_input(&[
-                                            contract_player_state.player.into_token()
-                                        ]).unwrap(); 
+                                        // let data = game.card_contract.contract.abi()
+                                        // .function(CardContractViewActionType::GetAllCards.get_view_method().as_str()).unwrap()
+                                        // .encode_input(&[
+                                        //     contract_player_state.player.into_token()
+                                        // ]).unwrap(); 
+                                        let data = game.card_contract.encode_input(CardContractViewActionType::GetAllCards.get_view_method().as_str(),
+                                            &[contract_player_state.player.into_token()]).unwrap();
                                         contract_events_writer.send(CallContractEvent{contract: game.card_contract.clone(), 
                                             method:Web3ViewEvents::CardContractViewActionType(CardContractViewActionType::GetAllCards), 
                                             
@@ -480,11 +495,13 @@ pub fn process_contract_response(res: &RecvContractResponse,
                                 }
                             }
                         },
-                        _=>{},
+                        _=>{
+                            error!("GetPlayerData parse fail");
+                        },
                     }
                 },
                 GameContractViewActionType::GetPkc=>{
-                    match parse_token_to_vec_uint(res.result.clone(),"Pkc field parse error"){
+                    match parse_token_to_vec_uint(decoded_result.clone(),"Pkc field parse error"){
                         Ok(v)=>{
                             game.pkc=v;
                         },
@@ -496,7 +513,7 @@ pub fn process_contract_response(res: &RecvContractResponse,
                 },
                 GameContractViewActionType::GetMatchEnvCards=>{
                     //info!("Get env result= {:?} for parms {:?} ",res.result,res.params);
-                    match &res.result{
+                    match &decoded_result{
                         Token::Array(val)=>{
                             //info!("Get match env cards = {:?}",val);
                             if game.env_cards.len() == 0{
@@ -513,7 +530,9 @@ pub fn process_contract_response(res: &RecvContractResponse,
                             }
                             
                         },
-                        _=>{},
+                        _=>{
+                            error!("GetMatchEnvCards parse fail");
+                        },
                     }
                 }
             }
@@ -541,7 +560,7 @@ popup_draw_event: &mut EventWriter<PopupDrawEvent>,
             //Update other players data on screen
             if let Some(ref match_state)=game.match_state{
                 //All players
-                
+                info!("match_state={:?}",match_state.state);
                 if let Some(index)=get_player_index_by_address(&game, updated_player_address) {
                     let player_data = &game.players_data[index];
                     if game.screen_data.contains_key(&updated_player_address) == false {
@@ -570,7 +589,6 @@ popup_draw_event: &mut EventWriter<PopupDrawEvent>,
                             
                             if updated_player_address==address_bytes{
                                 //Hand cards
-                                info!("RevealPlayersHand address_bytes={:?}",address_bytes);
                                 for hand in player_data.player_state.player_hand.iter() {
                                     let hand_idx=*hand as usize;
                                     if player_screen_data.current_hands.contains_key(&hand_idx) == false{
@@ -696,7 +714,7 @@ popup_draw_event: &mut EventWriter<PopupDrawEvent>,
                         
                     }else{
                         //Already set 
-                        //info!("match_state={:?}",match_state.state);
+                        
                         let match_state_u64=match_state.state.clone() as u64;
                         if match_state_u64>=MatchStateEnum::SetPkc as u64{
                             next_game_state.set(GameState::GameStart);
@@ -1117,16 +1135,18 @@ pub fn request_contract_data(
         if val.timer.finished() 
         {
             let gs=game_state.get();
-            // info!("timer gs={:?}",gs);
+            //  info!("timer match_state={:?}",game.match_state);
             if game.match_finished == false
             {
                 if match_index > U256::zero() 
                 {
-                    let data = game.game_contract.contract.abi()
-                                    .function(GameContractViewActionType::GetMatch.get_view_method().as_str()).unwrap()
-                                    .encode_input(&[
-                                        match_index.clone().into_token()
-                                    ]).unwrap(); 
+                    // let data = game.game_contract.contract.abi()
+                    //                 .function(GameContractViewActionType::GetMatch.get_view_method().as_str()).unwrap()
+                    //                 .encode_input(&[
+                    //                     match_index.clone().into_token()
+                    //                 ]).unwrap(); 
+                    let data = game.game_contract.encode_input(GameContractViewActionType::GetMatch.get_view_method().as_str(),
+                    &[ match_index.clone().into_token()]).unwrap();
                                 
                     contract_events_writer.send(CallContractEvent{contract: game.game_contract.clone(), 
                         method:Web3ViewEvents::GameContractViewActionType(GameContractViewActionType::GetMatch), 
@@ -1136,12 +1156,14 @@ pub fn request_contract_data(
                         
                     game.match_state.as_ref().map(|match_state|{
                         for i in 0..match_state.player_count {
-                            let data = game.game_contract.contract.abi()
-                                .function(GameContractViewActionType::GetPlayerDataByIndex.get_view_method().as_str()).unwrap()
-                                .encode_input(&[
-                                    Token::Uint(match_index.clone()),
-                                    Token::Uint(i.clone().into())
-                                ]).unwrap(); 
+                            // let data = game.game_contract.contract.abi()
+                            //     .function(GameContractViewActionType::GetPlayerDataByIndex.get_view_method().as_str()).unwrap()
+                            //     .encode_input(&[
+                            //         Token::Uint(match_index.clone()),
+                            //         Token::Uint(i.clone().into())
+                            //     ]).unwrap(); 
+                            let data = game.game_contract.encode_input(GameContractViewActionType::GetPlayerDataByIndex.get_view_method().as_str(),
+                             &[ Token::Uint(match_index.clone()),Token::Uint(i.clone().into())]).unwrap();
                             contract_events_writer.send(CallContractEvent{contract: game.game_contract.clone(), 
                             method:Web3ViewEvents::GameContractViewActionType(GameContractViewActionType::GetPlayerDataByIndex), 
                             params: CallContractParam::Data(data)});
@@ -1150,11 +1172,13 @@ pub fn request_contract_data(
 
                     if game.env_cards.len() == 0{
                         //get env cards
-                        let data = game.game_contract.contract.abi()
-                        .function(GameContractViewActionType::GetMatchEnvCards.get_view_method().as_str()).unwrap()
-                        .encode_input(&[
-                            match_index.clone().into_token()
-                        ]).unwrap(); 
+                        // let data = game.game_contract.contract.abi()
+                        // .function(GameContractViewActionType::GetMatchEnvCards.get_view_method().as_str()).unwrap()
+                        // .encode_input(&[
+                        //     match_index.clone().into_token()
+                        // ]).unwrap(); 
+                        let data = game.game_contract.encode_input(GameContractViewActionType::GetMatchEnvCards.get_view_method().as_str(),
+                             &[ match_index.clone().into_token()]).unwrap();
                     
                         contract_events_writer.send(CallContractEvent{contract: game.game_contract.clone(), 
                         method:Web3ViewEvents::GameContractViewActionType(GameContractViewActionType::GetMatchEnvCards), 
@@ -1172,11 +1196,13 @@ pub fn request_contract_data(
                     game.account_bytes.as_ref().map(|account| {
                         //Get all cards
                         if let Some(index) = get_player_index_by_address(&game, account) {
-                            let data = game.card_contract.contract.abi()
-                            .function(CardContractViewActionType::GetAllCards.get_view_method().as_str()).unwrap()
-                            .encode_input(&[
-                                get_address_from_string(&hex::encode(account)).unwrap().into_token()
-                            ]).unwrap(); 
+                            // let data = game.card_contract.contract.abi()
+                            // .function(CardContractViewActionType::GetAllCards.get_view_method().as_str()).unwrap()
+                            // .encode_input(&[
+                            //     get_address_from_string(&hex::encode(account)).unwrap().into_token()
+                            // ]).unwrap(); 
+                            let data = game.card_contract.encode_input(CardContractViewActionType::GetAllCards.get_view_method().as_str(),
+                             &[  get_address_from_string(&hex::encode(account)).unwrap().into_token()]).unwrap();
                             
                             contract_events_writer.send(CallContractEvent{contract: game.card_contract.clone(), 
                             method:Web3ViewEvents::CardContractViewActionType(CardContractViewActionType::GetAllCards), 
@@ -1186,11 +1212,13 @@ pub fn request_contract_data(
 
                         let account_str=game.account.clone().unwrap();
                         //Get current match
-                        let data = game.game_contract.contract.abi()
-                        .function(GameContractViewActionType::GetCurrentMatch.get_view_method().as_str()).unwrap()
-                        .encode_input(&[
-                            get_address_from_string(&account_str).unwrap().into_token()
-                        ]).unwrap(); 
+                        // let data = game.game_contract.contract.abi()
+                        // .function(GameContractViewActionType::GetCurrentMatch.get_view_method().as_str()).unwrap()
+                        // .encode_input(&[
+                        //     get_address_from_string(&account_str).unwrap().into_token()
+                        // ]).unwrap(); 
+                        let data = game.game_contract.encode_input(GameContractViewActionType::GetCurrentMatch.get_view_method().as_str(),
+                             &[  get_address_from_string(&account_str).unwrap().into_token()]).unwrap();
                         contract_events_writer.send(CallContractEvent{contract: game.game_contract.clone(), 
                             method:Web3ViewEvents::GameContractViewActionType(GameContractViewActionType::GetCurrentMatch), 
                             params:CallContractParam::Data(data),
@@ -1202,12 +1230,14 @@ pub fn request_contract_data(
             {
                 game.account_bytes.as_ref().map(|account| {
                     if let Some(index) = get_player_index_by_address(&game, account) {
-                        let data = game.card_contract.contract.abi()
-                        .function(CardContractViewActionType::GetAllCards.get_view_method().as_str()).unwrap()
-                        .encode_input(&[
-                            get_address_from_string(&hex::encode(account)).unwrap().into_token()
-                        ]).unwrap(); 
-                        
+                        // let data = game.card_contract.contract.abi()
+                        // .function(CardContractViewActionType::GetAllCards.get_view_method().as_str()).unwrap()
+                        // .encode_input(&[
+                        //     get_address_from_string(&hex::encode(account)).unwrap().into_token()
+                        // ]).unwrap(); 
+                        let data = game.card_contract.encode_input(CardContractViewActionType::GetAllCards.get_view_method().as_str(),
+                             &[ get_address_from_string(&hex::encode(account)).unwrap().into_token()]).unwrap();
+
                         contract_events_writer.send(CallContractEvent{contract: game.card_contract.clone(), 
                         method:Web3ViewEvents::CardContractViewActionType(CardContractViewActionType::GetAllCards), 
                         params: CallContractParam::Data(data),

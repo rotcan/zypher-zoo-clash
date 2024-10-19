@@ -1,8 +1,6 @@
 use bevy::prelude::*;
-use bevy_web3::contract::{get_address_from_string,EthContract};
-use bevy_web3::contract::tokens::{Uint,Tokenizable,Token};
 use bevy_web3::types::{H160};
-use bevy_web3::{plugin::{WalletChannel}};
+use bevy_web3::plugin::{WalletChannel,get_address_from_string,EthContract,tokens::{Uint,Tokenizable,Token}};
 use super::{Point,VRF_MIN_BALANCE};
 use crate::error::GameError;
 use crate::web3::{GameContractIxType,init_masked_cards,shuffle_cards,public_compress,convert_string_to_u256,
@@ -78,7 +76,7 @@ pub fn proof_token_to_string(data: Token)->String{
 }
 fn send_txn(ix_type: &GameContractIxType, data: Vec<Token>,from_address:H160,game_address: H160,
     value: Option<Uint>,contract: &EthContract,wallet: &Res<WalletChannel>,)->SendResult<()>{
-        match contract.encode_data(ix_type.get_ix_method().as_str(),data){
+        match contract.encode_input(ix_type.get_ix_method().as_str(),&data){
             Ok(data)=>{
                 wallet.send(from_address,game_address,data, 
                     Some(ix_type.clone() as i32), 
@@ -95,8 +93,8 @@ fn send_txn(ix_type: &GameContractIxType, data: Vec<Token>,from_address:H160,gam
     
 pub fn send_txn_init_player(wallet: &Res<WalletChannel>,
     contract: EthContract,from: String,vrf_balance: Option<Uint>, ix_type: &GameContractIxType)->SendResult<()>{
-    //let game_address=game.game_contract.contract.address();
-    let game_address=contract.contract.address();
+    //let game_address=game.game_contract.address();
+    let game_address=contract.address();
     let from_address = get_address_from_string(from.as_str()).unwrap();
     // info!("from_address={:?}",from_address);
     let value:Option<Uint>=if let Some(vrf_balance) = vrf_balance{
@@ -124,17 +122,17 @@ pub fn send_txn_create_match(wallet: &Res<WalletChannel>,
     player_count: u8,player_public_key: Point,vrf_balance: Option<Uint>,)->SendResult<()>
 {
 
-    let game_address=contract.contract.address();
+    let game_address=contract.address();
     let from_address = get_address_from_string(from.as_str()).unwrap();
     // info!("from_address={:?}",from_address);
     let value:Option<Uint>=if let Some(vrf_balance) = vrf_balance{
         if vrf_balance>VRF_MIN_BALANCE.into(){
             Some(0.into())
         }else{
-            Some(VRF_MIN_BALANCE.into())
+            Some((VRF_MIN_BALANCE*2).into())
         }
     }else{
-        Some(VRF_MIN_BALANCE.into())
+        Some((VRF_MIN_BALANCE*2).into())
     };
     let topup: u64 = if let Some(ref value) = value{
         if value == &Uint::zero() {
@@ -156,7 +154,7 @@ pub fn send_txn_set_creator_deck(wallet: &Res<WalletChannel>,
     contract: EthContract,from: String, ix_type: &GameContractIxType,
     match_index: Uint, card_indices: Vec<Uint>)->SendResult<()>
 {
-    let game_address=contract.contract.address();
+    let game_address=contract.address();
     let from_address = get_address_from_string(from.as_str()).unwrap();
     let data: Vec<Token>=vec![match_index.into_token(),
     Token::Array(card_indices.into_iter().map(|m| m.into_token()).collect::<Vec<Token>>())];
@@ -169,7 +167,7 @@ pub fn send_txn_join_match(wallet: &Res<WalletChannel>,
     contract: EthContract,from: String, ix_type: &GameContractIxType,
     match_index: Uint,player_public_key: Point, card_indices: Vec<Uint>)->SendResult<()>
 {
-    let game_address=contract.contract.address();
+    let game_address=contract.address();
     let from_address = get_address_from_string(from.as_str()).unwrap();
     let data: Vec<Token>=vec![match_index.into_token(),
     Token::Tuple(vec![player_public_key.x.into_token(),
@@ -184,7 +182,7 @@ pub fn send_txn_joint_key(wallet: &Res<WalletChannel>,
     contract: EthContract,from: String, ix_type: &GameContractIxType,
     match_index: Uint, pkc: Vec<Uint>)->SendResult<()>
 {
-    let game_address=contract.contract.address();
+    let game_address=contract.address();
     let from_address = get_address_from_string(from.as_str()).unwrap();
     let data: Vec<Token>=vec![match_index.into_token(),
     Token::FixedArray(pkc.into_iter().map(|m| m.into_token()).collect::<Vec<Token>>())];
@@ -198,7 +196,7 @@ pub fn send_txn_mask_and_shuffle_env_deck(wallet: &Res<WalletChannel>,
     contract: EthContract,from: String, ix_type: &GameContractIxType,
     match_index: Uint,game_key: Point, num : i32)->SendResult<()>
 {
-    let game_address=contract.contract.address();
+    let game_address=contract.address();
     let from_address = get_address_from_string(from.as_str()).unwrap();
     let joint_key_string=public_compress(&game_key).unwrap();
     // info!("joint_key_string={:?}",joint_key_string);
@@ -244,7 +242,7 @@ pub fn send_txn_shuffle_env_deck(wallet: &Res<WalletChannel>,
     contract: EthContract,from: String, ix_type: &GameContractIxType,
     match_index: Uint,game_key:Point, current_deck: Vec<Vec<Uint>>,)->SendResult<()>
 {
-    let game_address=contract.contract.address();
+    let game_address=contract.address();
     let from_address = get_address_from_string(from.as_str()).unwrap();
     let joint_key_string=public_compress(&game_key).unwrap();
     
@@ -267,7 +265,7 @@ pub fn send_txn_shuffle_env_deck(wallet: &Res<WalletChannel>,
 pub fn send_txn_shuffle_self_deck(wallet: &Res<WalletChannel>,
     contract: EthContract,from: String, ix_type: &GameContractIxType,
     match_index: Uint,game_key: Point, num : i32)->SendResult<()>{
-        let game_address=contract.contract.address();
+        let game_address=contract.address();
         let from_address = get_address_from_string(from.as_str()).unwrap();
         let joint_key_string=public_compress(&game_key).unwrap();
         let masked_cards=init_masked_cards(joint_key_string.clone(),num).unwrap();
@@ -295,7 +293,7 @@ pub fn send_txn_shuffle_others_deck(wallet: &Res<WalletChannel>,
     contract: EthContract,from: String, ix_type: &GameContractIxType,
     match_index: Uint,game_key: Point, player_address: H160, current_deck: Vec<Vec<Uint>>,)->SendResult<()>
 {
-    let game_address=contract.contract.address();
+    let game_address=contract.address();
     let from_address = get_address_from_string(from.as_str()).unwrap();
     let joint_key_string=public_compress(&game_key).unwrap();
     
@@ -321,7 +319,7 @@ pub fn show_next_env_card(wallet: &Res<WalletChannel>,
     card: (String,String), snark_proof: Vec<String>,
     )->SendResult<()>
 {
-    let game_address=contract.contract.address();
+    let game_address=contract.address();
     let from_address = get_address_from_string(from.as_str()).unwrap();
    
     
@@ -338,7 +336,7 @@ pub fn reveal_other_player_cards(wallet: &Res<WalletChannel>,
     match_index: Uint,  reveal_count: u64, 
    player_index: u64,cards: Vec< (String,String)>, snark_proofs: Vec<Vec<String>>)->SendResult<()>
 {
-    let game_address=contract.contract.address();
+    let game_address=contract.address();
     let from_address = get_address_from_string(from.as_str()).unwrap();
  
     let cards = cards.into_iter().map(|m| convert_vec_string_to_u256(vec![m.0,m.1])).collect::<Vec<Vec<Uint>>>();
@@ -359,7 +357,7 @@ pub fn player_action(wallet: &Res<WalletChannel>,
     contract: EthContract,from: String, ix_type: &GameContractIxType,
     match_index: Uint, player_action: PlayerAction)->SendResult<()>
 {
-    let game_address=contract.contract.address();
+    let game_address=contract.address();
     let from_address = get_address_from_string(from.as_str()).unwrap();
     
     let action_value = if player_action==PlayerAction::ShowEnvCard{
@@ -377,7 +375,7 @@ pub fn play_card(wallet: &Res<WalletChannel>,
     match_index: Uint, hand_index: u64, 
     card: (String,String), snark_proof: Vec<String>,)->SendResult<()>
 {
-    let game_address=contract.contract.address();
+    let game_address=contract.address();
     let from_address = get_address_from_string(from.as_str()).unwrap();
     
     //playCardOnDeck(matchIndex, handIndex, revealToken, proof)

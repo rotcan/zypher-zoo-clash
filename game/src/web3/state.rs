@@ -1,10 +1,9 @@
 use bevy::{prelude::*};
 use bevy_web3::{types::{Address}};
-use bevy_web3::contract::tokens::Uint;
+use bevy_web3::plugin::tokens::{Uint,Token};
 use crate::error::GameError;
 use crate::game::{GAME_CARD_CONTRACT_ADDRESS,GAME_CONTRACT_ADDRESS,E1,E2,E3,G1,G2,G3,G4,G5,G6,};
 use serde::{Serialize,Deserialize};
-use bevy_web3::contract::tokens::Token;
 use bevy_web3::types::U256;
 use std::collections::{BTreeMap};
 use std::time::Duration;

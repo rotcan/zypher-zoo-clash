@@ -1,4 +1,4 @@
-use bevy_web3::contract::{EthContract};
+use bevy_web3::plugin::{EthContract};
 use bevy_web3::types::{ U256};
 use std::collections::HashMap;
 
@@ -15,7 +15,7 @@ pub use self::api::*;
 pub use self::popup::*;
  
 pub const GAME_CARD_CONTRACT_ADDRESS: &str= "0x717a8fcd0fd39f8db75b47759fd4c4bd859a25c8";
-pub const GAME_CONTRACT_ADDRESS: &str= "0x2ddb4a9404262233dfbe788f0543e5da34b16dd5";
+pub const GAME_CONTRACT_ADDRESS: &str= "0x08ca9bfa2e083b7543af1e757acce0aef9416573";
  
 
 impl Game{
