@@ -2,15 +2,15 @@
 
 pragma solidity ^0.8.20;
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {ZgShuffleVerifier, ZgRevealVerifier, Point, MaskedCard} from '@zypher-game/secret-engine/Verifiers.sol';
-import {ShuffleService} from "./shuffle/ShuffleService.sol";
+import { Point, MaskedCard} from '@zypher-game/secret-engine/Verifiers.sol';//ZgShuffleVerifier, ZgRevealVerifier,
+// import {ShuffleService} from "./shuffle/ShuffleService.sol";
 import {IRaceGameCardA} from './RaceGameCardA.sol';
 import {IState} from './State.sol';
 import {ConfirmedOwner} from "@chainlink/contracts/src/v0.8/shared/access/ConfirmedOwner.sol";
 import {VRFConsumerBase} from "./vendor/binance/VRFConsumerBase.sol";
 import {VRFCoordinatorContract} from "./vendor/binance/VRFCoordinator.sol";
 import {IVRF} from './GameVRF.sol';
-
+import {IRaceZypher} from './RaceZypher.sol';
  
 interface IRaceGame{
     function mintCallback(address to,uint256[] memory _randomWords,uint8 minAllowedRarity) external ;
@@ -23,7 +23,6 @@ contract RaceGame is Ownable{
     uint256 private constant TOTAL_HAND_SIZE = 3;
     uint32 private constant MAX_BOARD_SIZE=20;
     uint32 public constant INIT_MINT_COUNT=20;
-    uint32 private constant PKC_SIZE=24;
     uint8 private constant WINNING_SCORE=20;
 
     //players deck
@@ -35,66 +34,17 @@ contract RaceGame is Ownable{
     //player match mapping
     mapping(address=>uint256) public currentMatch;
     //matches
-    mapping(uint256=>Match) public matches;
+    mapping(uint256=>IState.Match) public matches;
     uint _matchCounter;
 
-    ShuffleService public _shuffleService;
-    ZgRevealVerifier public _reveal;
+    // ShuffleService public _shuffleService;
+    // ZgRevealVerifier public _reveal;
+    IRaceZypher _zypher;
     IVRF public _vrf;
     event RequestSent(uint256 requestId, uint32 numWords);
     
 
-    struct Match{
-        IState.MatchState state;
-        mapping(uint8=>PlayerMatchData) players;
-        uint8 playerCount;
-        Point gameKey;
-        uint256[PKC_SIZE] pkc;
-        uint8 playerTurn;
-        uint8 playerTurnType;
-        uint8 revealEnv;
-        uint8 isFinished;
-        uint8 turnStart;
-        uint8 rounds;
-        address winner;
-        EnvDeck envDeck;
-        address creator;
-        // DiscardDeck discardDeck;
-        // uint8 orderReverse;
-    }
-
-    struct EnvDeck{
-        //Total deck 
-        // uint256[] originalCards;
-        uint256[4][] cards;
-        uint256[2][][] envReveals;
-        uint8 envRevealIndex;
-        uint256 envBoard;
-        uint256 shuffleCount;
-        uint256 playerRevealProofIndex;
-    }
-
    
-
-    struct PlayerMatchData{
-        uint256[] originalCards;
-        address player;
-        bool done;
-        Point publicKey;
-        uint8 playerIndex;
-        uint256[4][] playerDeck;
-        //Can reach total deck size
-        uint256[2][][] playerReveals;
-        uint8 playerRevealCount;
-        uint256 playerRevealProofIndex;
-        //Can be upto TOTAL_HAND_SIZE
-        uint8[] playerHand;
-        uint256 playerHandIndex;
-        //Only one active card on board
-        uint256 playerBoard;
-        uint256 position;
-        uint256 nextRoundPlayerRevealCount;
-    }
 
     IRaceGameCardA cardSet;
 
@@ -112,7 +62,7 @@ contract RaceGame is Ownable{
         cardSet = IRaceGameCardA(cardSetAddress );
     }
 
-    function _nextMatchState(Match storage _match) internal returns (IState.MatchState) {
+    function _nextMatchState(IState.Match storage _match) internal returns (IState.MatchState) {
         _match.state = IState.MatchState(uint256(_match.state) + 1);
         for(uint8 i=0;i<_match.playerCount;i++){
             _match.players[i].done=false;
@@ -139,7 +89,7 @@ contract RaceGame is Ownable{
     modifier isMatchEmpty(address player){
         uint256 matchId=currentMatch[player];
         if(matchId<_matchCounter){
-            Match storage mt = matches[currentMatch[player]];
+            IState.Match storage mt = matches[currentMatch[player]];
             if(mt.playerCount >0 && mt.isFinished==0)
                 revert MatchAlreadyExistsForPlayer(player);
         }
@@ -154,9 +104,12 @@ contract RaceGame is Ownable{
         _;
     }
  
-    function setVerifiers(ShuffleService shuffle, ZgRevealVerifier reveal) external onlyOwner{
-        _shuffleService=shuffle;
-        _reveal = reveal;
+    //function setVerifiers(ShuffleService shuffle, ZgRevealVerifier reveal) external onlyOwner{
+    function setZypher(IRaceZypher zypher) external onlyOwner{
+        // _shuffleService=shuffle;
+        // _reveal = reveal;
+        //_zypher.setVerifiers(shuffle,reveal);
+        _zypher=zypher;
     }
 
     function setVRF(address vrf) external onlyOwner{
@@ -210,7 +163,7 @@ contract RaceGame is Ownable{
     
     function _createNewMatch(Point memory publicKey, address creator,uint8 playerCount) internal returns(uint256){
         uint256 counter = _matchCounter++;
-        Match storage _match = matches[counter];
+        IState.Match storage _match = matches[counter];
         _match.state=IState.MatchState.None;
         _match.playerCount=playerCount;
         _match.creator=creator;
@@ -241,7 +194,7 @@ contract RaceGame is Ownable{
     isMatchExists(matchIndex) 
     isPlayerCardsMatch(originalCardIndex) {
         address player=msg.sender;
-        Match storage _match=matches[matchIndex];
+        IState.Match storage _match=matches[matchIndex];
         if(player != _match.players[0].player){
             revert NotCreator(_match.players[0].player,player);
         }
@@ -256,7 +209,7 @@ contract RaceGame is Ownable{
     function joinMatch(uint256 matchIndex,Point memory publicKey,uint256[] memory originalCardIndex) external
     isMatchExists(matchIndex) 
     isPlayerCardsMatch(originalCardIndex) {
-        Match storage _match = matches[matchIndex];
+        IState.Match storage _match = matches[matchIndex];
         if(_match.playerTurn == 0){
             revert WaitingForFirstPlayerDeck();
         }
@@ -280,7 +233,8 @@ contract RaceGame is Ownable{
                     revert InvalidPubkey(i);
                 }
              }
-            _match.gameKey = _reveal.aggregateKeys(playerKeys);
+            //_match.gameKey = _reveal.aggregateKeys(playerKeys);
+            _match.gameKey = _zypher.aggregateKeys(playerKeys);
 
             //
             _nextMatchState(_match);
@@ -296,9 +250,9 @@ contract RaceGame is Ownable{
 
     function getPlayerData(uint256 matchIndex, address playerAddress) public view
     isMatchExists(matchIndex)
-    returns (PlayerMatchData memory)
+    returns (IState.PlayerMatchData memory)
     {
-        Match storage _match= matches[matchIndex];
+        IState.Match storage _match= matches[matchIndex];
         uint8 playerIndex=getPlayerIndex(_match,matchIndex, playerAddress);
         if(currentMatch[playerAddress] != matchIndex) {
             revert PlayerNotPartOfMatch(currentMatch[playerAddress],matchIndex);
@@ -308,53 +262,54 @@ contract RaceGame is Ownable{
 
     function getPKC(uint256 matchIndex) public view
     isMatchExists(matchIndex)
-    returns (uint256[PKC_SIZE] memory)
+    returns (uint256[24] memory)
     {
-        Match storage _match= matches[matchIndex];
+        IState.Match storage _match= matches[matchIndex];
         return _match.pkc;
     } 
 
     function getPlayerDataByIndex(uint256 matchIndex, uint8 playerIndex) public view
     isMatchExists(matchIndex)
-    returns (PlayerMatchData memory)
+    returns (IState.PlayerMatchData memory)
     {
-        Match storage _match= matches[matchIndex];
+        IState.Match storage _match= matches[matchIndex];
         return _match.players[playerIndex];
     } 
 
     function setJointKey(uint256 matchIndex,uint256[24] calldata pkc) external
     isMatchExists(matchIndex){
-        Match storage _match= matches[matchIndex];
+        IState.Match storage _match= matches[matchIndex];
         _match.pkc = pkc;
-        uint256[] memory temp_pkc=new uint256[](PKC_SIZE);
+        uint256[] memory tempPkc=new uint256[](IState.PKC_SIZE);
         for (uint i=0;i<pkc.length;i++){
-            temp_pkc[i]=pkc[i];
+            tempPkc[i]=pkc[i];
         }
-        _shuffleService.setPkc(temp_pkc);
+        // _shuffleService.setPkc(tempPkc);
+        _zypher.setPkc(tempPkc);
         _nextMatchState(_match);
     }
 
-    function _shuffle(
-        uint256[4][] calldata maskedDeck,
-        uint256[4][] calldata shuffledDeck,
-        bytes calldata proof) internal{
-        uint256[] memory maskedDeckInput = new uint256[](VALID_DECK_SIZE*4);
-        uint256[] memory shuffledDeckInput = new uint256[](VALID_DECK_SIZE*4);
+    // function _shuffle(
+    //     uint256[4][] calldata maskedDeck,
+    //     uint256[4][] calldata shuffledDeck,
+    //     bytes calldata proof) internal{
+    //     uint256[] memory maskedDeckInput = new uint256[](VALID_DECK_SIZE*4);
+    //     uint256[] memory shuffledDeckInput = new uint256[](VALID_DECK_SIZE*4);
         
-        for (uint256 i = 0; i < VALID_DECK_SIZE; i++) {
-            maskedDeckInput[i * 4 + 0] = maskedDeck[i][0];
-            maskedDeckInput[i * 4 + 1] = maskedDeck[i][1];
-            maskedDeckInput[i * 4 + 2] = maskedDeck[i][2];
-            maskedDeckInput[i * 4 + 3] = maskedDeck[i][3];
+    //     for (uint256 i = 0; i < VALID_DECK_SIZE; i++) {
+    //         maskedDeckInput[i * 4 + 0] = maskedDeck[i][0];
+    //         maskedDeckInput[i * 4 + 1] = maskedDeck[i][1];
+    //         maskedDeckInput[i * 4 + 2] = maskedDeck[i][2];
+    //         maskedDeckInput[i * 4 + 3] = maskedDeck[i][3];
 
-            shuffledDeckInput[i * 4 + 0] = shuffledDeck[i][0];
-            shuffledDeckInput[i * 4 + 1] = shuffledDeck[i][1];
-            shuffledDeckInput[i * 4 + 2] = shuffledDeck[i][2];
-            shuffledDeckInput[i * 4 + 3] = shuffledDeck[i][3];
-        }
-        _shuffleService.setDeck(maskedDeckInput);
-        _shuffleService.verify(shuffledDeckInput, proof);
-    }
+    //         shuffledDeckInput[i * 4 + 0] = shuffledDeck[i][0];
+    //         shuffledDeckInput[i * 4 + 1] = shuffledDeck[i][1];
+    //         shuffledDeckInput[i * 4 + 2] = shuffledDeck[i][2];
+    //         shuffledDeckInput[i * 4 + 3] = shuffledDeck[i][3];
+    //     }
+    //     _shuffleService.setDeck(maskedDeckInput);
+    //     _shuffleService.verify(shuffledDeckInput, proof);
+    // }
 
     //Shuffle and submit self deck
     error InvalidDeck(address player);
@@ -366,7 +321,7 @@ contract RaceGame is Ownable{
         uint256[4][] calldata shuffledDeck,
         bytes calldata proof
     ) external{
-        Match storage _match= matches[matchIndex];
+        IState.Match storage _match= matches[matchIndex];
         if(_match.state != IState.MatchState.ShuffleEnvDeck){
             revert FailedToShuffleEnvDeck(uint256(_match.state));
         }
@@ -382,7 +337,8 @@ contract RaceGame is Ownable{
         }
         _match.envDeck.shuffleCount+=1<<playerIndex;
 
-        _shuffle(maskedDeck,shuffledDeck,proof);
+        //_shuffle(maskedDeck,shuffledDeck,proof);
+        _zypher.shuffle(maskedDeck, shuffledDeck, proof);
  
         //Store deck
         _match.envDeck.cards=shuffledDeck;
@@ -400,7 +356,7 @@ contract RaceGame is Ownable{
     ) external 
     isMatchExists(matchIndex) {
         // Do some simple checks...
-        Match storage _match= matches[matchIndex];
+        IState.Match storage _match= matches[matchIndex];
         address player = msg.sender;
         if(currentMatch[player] != matchIndex) {
             revert PlayerNotPartOfMatch(currentMatch[player],matchIndex);
@@ -412,7 +368,8 @@ contract RaceGame is Ownable{
         //uint256[4][] storage currentDeck = _match.envDeck.cards;
         uint8 playerIndex=getPlayerIndex(_match,matchIndex, player);
 
-        _shuffle(currentDeck,shuffledDeck,proof);
+        //_shuffle(currentDeck,shuffledDeck,proof);
+        _zypher.shuffle(currentDeck, shuffledDeck, proof);
 
         //Store deck
         _match.envDeck.cards=shuffledDeck;
@@ -435,12 +392,13 @@ contract RaceGame is Ownable{
     ) external 
     isMatchExists(matchIndex) {
         // Do some simple checks...
-        Match storage _match= matches[matchIndex];
+        IState.Match storage _match= matches[matchIndex];
         if(_match.state != IState.MatchState.SubmitSelfDeck){
             revert InvalidState(uint256(IState.MatchState.SubmitSelfDeck),uint256(_match.state));
         }
 
-        _shuffle(maskedDeck,shuffledDeck,proof);
+        //_shuffle(maskedDeck,shuffledDeck,proof);
+         _zypher.shuffle(maskedDeck, shuffledDeck, proof);
         // Store deck...
         address player = msg.sender;
         bool invalidPlayer = true;
@@ -478,7 +436,7 @@ contract RaceGame is Ownable{
     ) external 
     isMatchExists(matchIndex) {
         // Do some simple checks...
-        Match storage _match= matches[matchIndex];
+        IState.Match storage _match= matches[matchIndex];
         address player = msg.sender;
         if(currentMatch[player] != matchIndex) {
             revert PlayerNotPartOfMatch(currentMatch[player],matchIndex);
@@ -486,8 +444,8 @@ contract RaceGame is Ownable{
         //
         uint8 playerIndex=getPlayerIndex(_match,matchIndex, playerAddress);
         uint8 senderPlayerIndex=getPlayerIndex(_match,matchIndex, player);
-        PlayerMatchData storage playerData=_match.players[playerIndex];
-        PlayerMatchData storage senderPlayerData=_match.players[senderPlayerIndex];
+        IState.PlayerMatchData storage playerData=_match.players[playerIndex];
+        IState.PlayerMatchData storage senderPlayerData=_match.players[senderPlayerIndex];
         //Todo! this only works for 2 players
         if(senderPlayerData.done==true){
             revert ShuffleDeckError(player);
@@ -498,7 +456,8 @@ contract RaceGame is Ownable{
         if(_match.state != IState.MatchState.ShuffleOpponentDeck){
             revert InvalidState(uint256(IState.MatchState.SubmitSelfDeck),uint256(_match.state));
         }
-         _shuffle(currentDeck,shuffledDeck,proof);
+        //  _shuffle(currentDeck,shuffledDeck,proof);
+        _zypher.shuffle(currentDeck, shuffledDeck, proof);
         //Store deck
         playerData.playerDeck=shuffledDeck;
         //Todo! this only works for 2 players
@@ -515,32 +474,32 @@ contract RaceGame is Ownable{
 
     }
 
-    error InvalidRevealToken();
-    function _requireValidRevealToken(
-        //uint8 targetPlayerId,
-        uint256[4][] storage targetPlayerDeck, 
-        uint8 targetCardIndex,
-        uint8 senderPlayerId,
-        Match storage _match,
-        uint256[2] calldata revealToken,
-        uint256[8] calldata proof
-    ) internal view {
-        //uint256[4][] storage deck = _match.players[targetPlayerId].playerDeck;
-        Point storage publicKey = _match.players[senderPlayerId].publicKey;
+    // error InvalidRevealToken();
+    // function _requireValidRevealToken(
+    //     //uint8 targetPlayerId,
+    //     uint256[4][] storage targetPlayerDeck, 
+    //     uint8 targetCardIndex,
+    //     uint8 senderPlayerId,
+    //     IState.Match storage _match,
+    //     uint256[2] calldata revealToken,
+    //     uint256[8] calldata proof
+    // ) internal view {
+    //     //uint256[4][] storage deck = _match.players[targetPlayerId].playerDeck;
+    //     Point storage publicKey = _match.players[senderPlayerId].publicKey;
 
-        if (!_reveal.verifyRevealWithSnark([
-            targetPlayerDeck[targetCardIndex][2],
-            targetPlayerDeck[targetCardIndex][3],
-            revealToken[0],
-            revealToken[1],
-            publicKey.x,
-            publicKey.y
-        ], proof)) {
-            revert InvalidRevealToken();
-        }
-    }
+    //     if (!_reveal.verifyRevealWithSnark([
+    //         targetPlayerDeck[targetCardIndex][2],
+    //         targetPlayerDeck[targetCardIndex][3],
+    //         revealToken[0],
+    //         revealToken[1],
+    //         publicKey.x,
+    //         publicKey.y
+    //     ], proof)) {
+    //         revert InvalidRevealToken();
+    //     }
+    // }
     
-    function getPlayerIndex(Match storage _match, uint256 matchIndex, address player) internal view returns(uint8) {
+    function getPlayerIndex(IState.Match storage _match, uint256 matchIndex, address player) internal view returns(uint8) {
         
         bool isSenderAPlayer=false;
         uint8 senderPlayerIndex=0;
@@ -566,7 +525,7 @@ contract RaceGame is Ownable{
         uint256[8] calldata proof
     ) external 
     isMatchExists(matchIndex){
-        Match storage _match= matches[matchIndex];
+        IState.Match storage _match= matches[matchIndex];
         if (_match.rounds==0 && _match.state != IState.MatchState.RevealEnvCard) {
             revert InvalidState(uint256(IState.MatchState.RevealEnvCard),uint256(_match.state));
         }
@@ -583,14 +542,17 @@ contract RaceGame is Ownable{
             revert AlreadyShownCard(cardIndex);
         }
         
-        _requireValidRevealToken(
-                _match.envDeck.cards,
-                cardIndex,
-                senderPlayerIndex,
-                _match,
-                revealToken,
-                proof
-            );
+        // _requireValidRevealToken(
+        //         _match.envDeck.cards,
+        //         cardIndex,
+        //         senderPlayerIndex,
+        //         _match,
+        //         revealToken,
+        //         proof
+        //     );
+        _zypher.requireValidRevealToken(_match.envDeck.cards,
+                cardIndex,_match.players[senderPlayerIndex].publicKey,
+                revealToken,proof);
         reveals[cardIndex].push(revealToken);
         if(_match.envDeck.shuffleCount>>senderPlayerIndex & 1 == 1){
             revert AlreadyRevealedByPlayer( senderPlayerIndex);
@@ -598,9 +560,8 @@ contract RaceGame is Ownable{
         _match.envDeck.shuffleCount+=1<<senderPlayerIndex; 
 
         if(reveals[cardIndex].length==_match.playerCount){
-            uint256 maskedCardIndex=_realCardId(_match,
-            _match.envDeck.cards[cardIndex],
-            reveals[cardIndex]);
+            // uint256 maskedCardIndex=_realCardId(_match,_match.envDeck.cards[cardIndex],reveals[cardIndex]);
+            uint256 maskedCardIndex=_zypher.realCardId(_match.playerCount,_match.envDeck.cards[cardIndex],reveals[cardIndex]);
             _match.envDeck.envBoard=maskedCardIndex;
             _match.revealEnv=1;
             _match.playerTurnType=2;
@@ -638,13 +599,13 @@ contract RaceGame is Ownable{
         uint256[8][] calldata proofs
     ) external 
     isMatchExists(matchIndex) {
-        Match storage _match= matches[matchIndex];
+        IState.Match storage _match= matches[matchIndex];
         address player = msg.sender;
         uint8 senderPlayerIndex=getPlayerIndex(_match, matchIndex,player);
         if(_match.rounds>0 && cardCount!=1){
             revert CardRevealCountError(1,cardCount);
         }
-        PlayerMatchData storage playerData=_match.players[playerIndex];
+        IState.PlayerMatchData storage playerData=_match.players[playerIndex];
         if(playerData.playerRevealProofIndex>>senderPlayerIndex & 1 == 1){
             revert AlreadyRevealedByPlayer(senderPlayerIndex);
         }
@@ -668,14 +629,17 @@ contract RaceGame is Ownable{
         }
 
         for(uint8 i=0;i<(cardCount);i++){
-            _requireValidRevealToken(
-                playerData.playerDeck,
-                i+playerData.playerRevealCount,
-                senderPlayerIndex,
-                _match,
-                revealTokens[i],
-                proofs[i]
-            );
+            // _requireValidRevealToken(
+            //     playerData.playerDeck,
+            //     i+playerData.playerRevealCount,
+            //     senderPlayerIndex,
+            //     _match,
+            //     revealTokens[i],
+            //     proofs[i]
+            // );
+            _zypher.requireValidRevealToken(playerData.playerDeck,
+                 i+playerData.playerRevealCount,_match.players[senderPlayerIndex].publicKey,
+                revealTokens[i],proofs[i]);
             reveals[i+playerData.playerRevealCount].push(revealTokens[i]);
             //reveals[i][senderPlayerIndex]=revealTokens[i-cardStartIndex];
         }
@@ -722,33 +686,34 @@ contract RaceGame is Ownable{
         }
     }
 
-    function _realCardId(
-        Match storage _match,
-        uint256[4] storage maskedCard,
-        uint256[2][] storage reveals
-        //uint256[] storage originalCards
-    ) internal view returns (uint256) {
+    // function _realCardId(
+    //     IState.Match storage _match,
+    //     uint256[4] storage maskedCard,
+    //     uint256[2][] storage reveals
+    //     //uint256[] storage originalCards
+    // ) internal view returns (uint256) {
  
-        if (reveals.length < _match.playerCount) {
-            return 0;
-        }
+    //     if (reveals.length < _match.playerCount) {
+    //         return 0;
+    //     }
 
-        Point[] memory rTokens = new Point[](reveals.length);
-        for (uint256 i = 0; i < reveals.length; i++) {
-            rTokens[i] = Point(reveals[i][0], reveals[i][1]);
-        }
+    //     Point[] memory rTokens = new Point[](reveals.length);
+    //     for (uint256 i = 0; i < reveals.length; i++) {
+    //         rTokens[i] = Point(reveals[i][0], reveals[i][1]);
+    //     }
 
-        Point memory realCardPoint = _reveal.unmask(MaskedCard(
-            maskedCard[0],
-            maskedCard[1],
-            maskedCard[2],
-            maskedCard[3]
-        ), rTokens);
+    //     // Point memory realCardPoint = _reveal.unmask(MaskedCard(
+    //     //     maskedCard[0],
+    //     //     maskedCard[1],
+    //     //     maskedCard[2],
+    //     //     maskedCard[3]
+    //     // ), rTokens);
+    //     Point memory realCardPoint = _zypher.unmask(maskedCard, rTokens);
 
-        uint realCardIndex=IState.getCardIndex(realCardPoint);
-        return realCardIndex;
-        //return originalCards[realCardIndex];
-    }
+    //     uint realCardIndex=IState.getCardIndex(realCardPoint);
+    //     return realCardIndex;
+    //     //return originalCards[realCardIndex];
+    // }
 
     //----------------Play Card -------------------------
 
@@ -757,7 +722,7 @@ contract RaceGame is Ownable{
     error EnvCardCanBeUpdatedOncePerTurn();
     function playerAction(uint256 matchIndex,uint8 showEnvCard) external 
     isMatchExists(matchIndex){
-        Match storage _match= matches[matchIndex];
+        IState.Match storage _match= matches[matchIndex];
         address player = msg.sender;
         uint8 senderPlayerIndex=getPlayerIndex(_match, matchIndex,player);
         
@@ -792,7 +757,7 @@ contract RaceGame is Ownable{
     uint256[2] calldata revealToken,
     uint256[8] calldata proof) external
      isMatchExists(matchIndex) {
-        Match storage _match= matches[matchIndex];
+        IState.Match storage _match= matches[matchIndex];
         address player = msg.sender;
         uint8 senderPlayerIndex=getPlayerIndex(_match, matchIndex,player);
         uint256[2][][] storage reveals = _match.players[senderPlayerIndex].playerReveals;
@@ -804,24 +769,26 @@ contract RaceGame is Ownable{
         if(_match.playerTurnType != 2){
             revert CannotShowPlayerCards(2,_match.playerTurnType);
         }
-        PlayerMatchData storage playerData=_match.players[senderPlayerIndex];
+        IState.PlayerMatchData storage playerData=_match.players[senderPlayerIndex];
         uint8 cardIndex=playerData.playerHand[playerHandIndex];
-        _requireValidRevealToken(
-                _match.players[senderPlayerIndex].playerDeck,
-                cardIndex,
-                senderPlayerIndex,
-                _match,
-                revealToken,
-                proof
-            );
+        // _requireValidRevealToken(
+        //         _match.players[senderPlayerIndex].playerDeck,
+        //         cardIndex,
+        //         senderPlayerIndex,
+        //         _match,
+        //         revealToken,
+        //         proof
+        //     );
+        _zypher.requireValidRevealToken( _match.players[senderPlayerIndex].playerDeck,
+                cardIndex,_match.players[senderPlayerIndex].publicKey,
+                revealToken,proof);
         reveals[cardIndex].push(revealToken);
         //Reveal Index will be player 
         // reveals[cardIndex][senderPlayerIndex][0]=revealToken[0];
         // reveals[cardIndex][senderPlayerIndex][1]=revealToken[1];
         //Show card of player board
-        uint256 maskedCardIndex=_realCardId(_match,
-        playerData.playerDeck[cardIndex],
-            reveals[cardIndex]);
+        //uint256 maskedCardIndex=_realCardId(_match,playerData.playerDeck[cardIndex],reveals[cardIndex]);
+        uint256 maskedCardIndex=_zypher.realCardId(_match.playerCount,playerData.playerDeck[cardIndex],reveals[cardIndex]);
         playerData.playerBoard=playerData.originalCards[maskedCardIndex];
         //Update player hand
         playerData.playerHand[playerHandIndex]=playerData.playerHand[playerData.playerHand.length-1];
@@ -832,7 +799,7 @@ contract RaceGame is Ownable{
         calculateNextTurn(_match,matchIndex);
     }
 
-    function calculateNextTurn(Match storage _match,uint256 matchIndex) internal{
+    function calculateNextTurn(IState.Match storage _match,uint256 matchIndex) internal{
         //Turn reset
         _match.turnStart=0;
         
@@ -856,7 +823,7 @@ contract RaceGame is Ownable{
  
     
     //----------------Score round -------------------------
-    function scoreRound(Match storage _match,uint256 matchIndex) internal {
+    function scoreRound(IState.Match storage _match,uint256 matchIndex) internal {
         IState.EnvCard[] storage _envMatchCards=envMatchCards[matchIndex];
         IState.EnvCard storage envCard= _envMatchCards[_match.envDeck.envBoard];
         IState.AnimalCard[] memory playerCards=new IState.AnimalCard[](_match.playerCount);
@@ -874,9 +841,9 @@ contract RaceGame is Ownable{
                 winCount[_match.players[i].player]+=1 ;
                 _match.state= IState.MatchState.Finished;
                 _match.winner=_match.players[i].player;
-                // for(uint8 j=0;j<_match.playerCount;j++){
-                //     currentMatch[_match.players[j].player]=0; 
-                // }
+                for(uint8 j=0;j<_match.playerCount;j++){
+                    currentMatch[_match.players[j].player]=0; 
+                }
                 if(winCount[_match.players[i].player]%3==0){
                     batchMint(_match.players[i].player, 1, uint8(IState.CardRarity.S));
                 }else{

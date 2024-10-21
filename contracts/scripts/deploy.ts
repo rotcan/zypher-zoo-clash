@@ -8,16 +8,18 @@
 import { ContractTransactionResponse } from "ethers";
 import { IState } from "../typechain-types";
 import { ErrorDecoder } from 'ethers-decode-error'
+import { libraries } from "../typechain-types/contracts";
 
 const errorDecoder = ErrorDecoder.create()
 //Current addresses
-const LibraryAddress="0x03a3bf407b72c95C1DEEAef3F3B71AE6258F276D";//"0x03D73a99f2151DC1b0969bdf436e6dF5f55Ec855";
+const LibraryAddress="0xd15A5Fc7736198615D3d10309B1A587aA8B0d4A3";//"0x03D73a99f2151DC1b0969bdf436e6dF5f55Ec855";
 const MockRevealVerifierAddress="0x362D393756caAe6ECF434D34d5CD70E83bAD02EF";
 const MockShuffleVerifierAddress="0x1aab73Ff73c3e861955ad00c909B27c0AB5626EB";
-const GameCardAddress="0x717a8fcd0fd39f8db75b47759fd4c4bd859a25c8";//"0x7A9B296Ad4c4c832e99127AAd6D58fD8bF8C46Dd";
+const GameCardAddress="0x512319949cee016552fbadcc6ccdd558a1302a7d";//"0x7A9B296Ad4c4c832e99127AAd6D58fD8bF8C46Dd";
 const opBNBTestnetVRFAddress="0x2B30C31a17Fe8b5dd397EF66FaFa503760D4eaF0";
 const VRFAddress ="0xFb5344f8EBc4b79ff1f4585edD0aA7dE0502CFc6";//"0x95b5E4AB677BabcbA12D780a86E5a0373480A35f";
-const GameAddress="0x4031f20cbb6ee87e5efcab2b00135447fd346ffb";
+const GameAddress="0x7fe3acafdb568eccbe687fd0b5d6b84bcde13aa8";
+const ZypherAddress="0xe09f5310419e0d0bc4e72c02e21006f499a362ce";
 //const hre = require("hardhat");
 const hre =require("hardhat");
 type Contract<T> = T & { deploymentTransaction(): ContractTransactionResponse; }; 
@@ -51,41 +53,26 @@ async function deployCard(){
         IState:LibraryAddress
     }}
     );
-    const gameCard = await Nft.deploy();
-    //const gameCard=await Nft.attach(GameCardAddress);
+    // const gameCard = await Nft.deploy();
+    const gameCard=await Nft.attach(GameCardAddress);
+
     const gameAddress=(String) (await gameCard.getAddress());
     console.log(`GameCard deployed to ${(await gameAddress.toLowerCase())}`);
-    const tx=await gameCard.initialize('AnimalRace','ZAR');
+    const tx=await gameCard.initialize('ZooClash','ZZC');
     console.log(await tx.wait());
     
 }
 
-async function getCardDetails(){
-    const Nft= await hre.ethers.getContractFactory('RaceGameCardA',
-        {libraries:{
-        IState:LibraryAddress
-    }}
-    );
-    const gameCard=await Nft.attach(GameCardAddress);
-    console.log(await gameCard.getAllCards("0x8aD407CEC851382005f2d9B0b664A284bdf0d00D"));
+async function deployZypher(){
+    const Zypher = await hre.ethers.getContractFactory('RaceZypher');
+    // const zypher=await Zypher.deploy();
+    const zypher=await Zypher.attach(ZypherAddress);
+    const zypherAddress =(String)(await zypher.getAddress());
+    console.log(`Zypher deployed to ${(await zypherAddress.toLowerCase())}`);
+    const tx1=await zypher.setVerifiers(MockShuffleVerifierAddress,MockRevealVerifierAddress);
+    console.log(await tx1.wait());
 }
 
-async function createSubscription(opBNBVRF: string){
-    const testVRFCoordinatorContract = await hre.ethers.getContractFactory(
-        'VRFCoordinatorContract',
-      )
-    const contract = await testVRFCoordinatorContract.attach(
-        opBNBVRF,
-    )
-    try {
-        const obj = await contract.createSubscription()
-        console.log("obj",obj);
-    } catch (e) {
-        console.log("error",e);
-    //assert.fail('createSubscription failed')
-    }
-    
-}
 
 async function deployVRF( ){
     let vrf = await hre.ethers.getContractFactory("GameVRF");
@@ -121,14 +108,45 @@ async function deployGame(){
     console.log(await tx2.wait());
     let VRF= await hre.ethers.getContractFactory("GameVRF");
     let vrf=await VRF.attach(VRFAddress);
+
     const tx3=await vrf.setGameContractAddress(gameAddress);
     console.log(await tx3.wait());
     
-    //Set verifies
-    const tx4=await game.setVerifiers(MockShuffleVerifierAddress,MockRevealVerifierAddress);
+    //Set verifiers
+    // const tx4=await game.setVerifiers(MockShuffleVerifierAddress,MockRevealVerifierAddress);
+    // console.log(await tx4.wait());
+    const tx4=await game.setZypher(ZypherAddress);
     console.log(await tx4.wait());
     
 }
+
+async function getCardDetails(){
+    const Nft= await hre.ethers.getContractFactory('RaceGameCardA',
+        {libraries:{
+        IState:LibraryAddress
+    }}
+    );
+    const gameCard=await Nft.attach(GameCardAddress);
+    console.log(await gameCard.getAllCards("0x8aD407CEC851382005f2d9B0b664A284bdf0d00D"));
+}
+
+async function createSubscription(opBNBVRF: string){
+    const testVRFCoordinatorContract = await hre.ethers.getContractFactory(
+        'VRFCoordinatorContract',
+      )
+    const contract = await testVRFCoordinatorContract.attach(
+        opBNBVRF,
+    )
+    try {
+        const obj = await contract.createSubscription()
+        console.log("obj",obj);
+    } catch (e) {
+        console.log("error",e);
+    //assert.fail('createSubscription failed')
+    }
+    
+}
+
 
 const testShuffle=async()=>{
     let Game=await hre.ethers.getContractFactory("RaceGame",
@@ -450,7 +468,7 @@ const checkVRFCoordinatorContract=async()=>{
     "0x2f90357316c7f9f6fb7b3872e6e82d82fdc0e331d02c83bb208c30ba84280dc9",
 ];  
 
-topupVrfSubscription().catch((error) => {
+deployGame().catch((error) => {
           console.error(error);
           process.exitCode = 1;
         });

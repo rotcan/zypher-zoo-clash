@@ -38,10 +38,14 @@ version = "0.3"
 features = [
   "Window",
   "Storage",
+  "Url",
+  "Location",
+  "Clipboard"
 ]
 
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen-futures = "0.4.42"
 #z4-bevy = { version = "0.1", git="https://github.com/zypher-game/z4-bevy", branch="main", default-features = false, features = ["wasm"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]

@@ -2,10 +2,7 @@
 members = [
   "bevy-web3", 
   #"bevy-z4",
-  "game","shuffle",
-  "rust-web3"
-  #,"zshuffle-wasm"
-  #, "temp", "game-test"
+  "game","shuffle"
 ]
 resolver = "2"
 

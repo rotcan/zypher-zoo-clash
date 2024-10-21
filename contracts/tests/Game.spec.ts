@@ -2,7 +2,7 @@ import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { RaceGameCardA } from "../typechain-types/contracts/RaceGameCardA.sol";
 import { expect } from "chai";
 import * as hre from "hardhat";
-import { IState, RaceGame, RevealVerifier, ShuffleService, GameVRF, VRFCoordinatorV2Mock } from "../typechain-types";
+import { IState, RaceGame, RevealVerifier, ShuffleService, GameVRF, VRFCoordinatorV2Mock, RaceZypher } from "../typechain-types";
 import { BigNumberish, ContractTransactionResponse } from "ethers";
 import {anyValue} from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 import * as SE from '@zypher-game/secret-engine';
@@ -27,6 +27,7 @@ describe('init',()=>{
     let VRF: Contract<GameVRF>;
     let GameMock: Contract<RaceGame>;
     let MockIState: Contract<IState>;
+    let RaceZypher: Contract<RaceZypher>;
     async function loadStateLibrary(){
         const IState= await hre.ethers.getContractFactory("IState");
         MockIState=await IState.deploy();
@@ -61,6 +62,11 @@ describe('init',()=>{
         //return {nft}
     }
 
+    async function loadZypher(){
+        let raceZypherMock = await hre.ethers.getContractFactory("RaceZypher");
+        RaceZypher=await raceZypherMock.deploy();
+    }
+
     async function loadVRFMock(){
         let vrfCoordinatorV2Mock = await hre.ethers.getContractFactory("VRFCoordinatorV2Mock");
         VrfCoordinatorV2Mock=await vrfCoordinatorV2Mock.deploy(0,0);
@@ -90,6 +96,7 @@ describe('init',()=>{
         await GameCard.setGameContract((await GameMock.getAddress()));
         await GameMock.setVRF((await VRF.getAddress()));
         await VRF.setGameContractAddress((await GameMock.getAddress()));
+        await GameMock.setZypher((await RaceZypher.getAddress()));
     }
 
     async function shuffleOpponentDeck({ matchIndex,otherPlayer, game, wallet, gameKey, deck }:
@@ -334,6 +341,7 @@ describe('init',()=>{
         await createMockVerifiers();
         // const  {nft}=await loadGameCard((await MockIState.getAddress()));
         await loadGameCard();
+        await loadZypher();
         await loadVRFMock();
         await loadVRF();
         await loadGame();
@@ -343,24 +351,15 @@ describe('init',()=>{
         const val=await MockIState.createCard(Number.parseInt(""+Math.random()*1000000),Number.parseInt(""+Math.random()*1000000),2);
         const card_prop = val[0];
         console.log("card_prop",card_prop);
-        // val=val+uint8(rarity);
-        // val=val<<6;
-        // val=val+uint8(animal);
-        // val=val<<3;
-        // val=val+health;
-        // val=val<<8;
-        // val=val+weakness;
-        // val=val<<8;
-        // val=val+favoredGeographies;
-        // val=val<<3;
-        // val=val+steps;
-
+        
         console.log("steps",card_prop & 7n);
         console.log("favoredGeographies",card_prop >> 3n & 127n);
         console.log("rarity",card_prop,card_prop >> 11n);
         const r1=Number.parseInt(""+Math.random()*1000);
         const r2=0;
         const t2=await MockIState.getRarity(r1,r2);
+        const t3=await MockIState.getEnvCard(Number.parseInt(""+Math.random()*1000000),Number.parseInt(""+Math.random()*1000000));
+        console.log("envCard",t3)
         console.log("rarity test ",t2,r1,r2);
         // const allcards=await MockIState.getAllAnimalCards();
         // console.log("allcards",allcards);
@@ -456,28 +455,11 @@ describe('init',()=>{
         //Set ZG verifiers
         const shuffler= MockShuffleVerifier;
         const revealer = MockRevealVerifier;
-        await GameMock.setVerifiers(
+        await RaceZypher.setVerifiers(
             await shuffler.getAddress(),
             await revealer.getAddress()
         )
-        // const key1=SE.generate_key();
-        // const key2=SE.generate_key();
-        // const keys=[{
-        //     sk: '0x03cef05cd7c1297e6b94dbd68a370213a2badb49a7167533d0971073c58673bd',
-        //     pk: '0x3b93e02ba3dc6029f47a34b8cb56b7740a0908db6996b0dbc11f2a2f21122813',
-        //     pkxy: [
-        //     '0x108f4dfc21fec087ffbb0fd807b343399ff0d3527c59b86059dbd53df37d37b8',
-        //     '0x132812212f2a1fc1dbb09669db08090a74b756cbb8347af42960dca32be0933b'
-        //     ]
-        // },{
-        //     sk: '0x035834c90c89d1f13b8c33851cfeb832b7bb98ea82968073e5c26ea0a6a055df',
-        //     pk: '0x467a434b5b376c3a0f0e14fec10c495da5061dc3887d5fb2371370238a87be06',
-        //     pkxy: [
-        //     '0x0fc2388eb7fce64437b65900d130b96fdb639fdd4af7f7ca12d5b2bbbef50fe0',
-        //     '0x06be878a23701337b25f7d88c31d06a55d490cc1fe140e0f3a6c375b4b437a46'
-        //     ]
-        // }
-        // ]; 
+         
         const keys=[{ 
             sk: "0x020b31a672b203b71241031c8ea5e5a4ef133c57bcde822ac514e8a1c7f89124", 
             pk: "0xada2d401ec3113060a049b5472550965f59423eaaeec3133dd33628e5df50491", 
@@ -525,7 +507,6 @@ describe('init',()=>{
         //point="280d653e895291ed1ebe5254700327d321133e4e2e37e53048d7ed21f432e81c" "280d653e895291ed1ebe5254700327d321133e4e2e37e53048d7ed21f432e81c"
         SE.init_prover_key(deckSize)
         const pkc = SE.refresh_joint_key(gameKey, deckSize)
-        console.log("deckSize",deckSize);
         
         // const match= await GameMock.matches(matchIndex);
         await GameMock.setJointKey(matchIndex,pkc);
@@ -586,6 +567,7 @@ describe('init',()=>{
         expect((await GameMock.matches(matchIndex)).state).eq(6);
         
         const matchEnvCards=await GameMock.getMatchEnvCards(matchIndex);
+        console.log("matchEnvCards", matchEnvCards.map((m)=>m.cardType).join(","));
         const boardCard= matchEnvCards[+(await GameMock.matches(matchIndex)).envDeck.envBoard.toString()];
         console.log("revealed board card",boardCard);
 

@@ -36,7 +36,8 @@ pub enum GameState{
 }
 
 pub fn start(){
-   
+    
+
     App::new()
         //File path is relative to project root
         .add_plugins(DefaultPlugins
@@ -66,12 +67,12 @@ pub fn start(){
         .add_event::<DelegateTxnSendEvent>()
         .add_event::<PopupDrawEvent>()
         .add_event::<PopupResponseEvent>()
-        .add_systems(Startup,setup_2d_cameras)
         //.add_systems(Startup,connect_wallet)
         .insert_resource(CardImages::default())
         .insert_resource(Game::init())
         .insert_resource(init_compute_resource())
         .insert_resource(init_http_resource())
+        .add_systems(Startup,(setup_2d_cameras,parse_url))
         .add_systems(Startup,load_sprites)
         .add_systems(OnEnter(GameState::Init),
             init_ui,
@@ -158,4 +159,44 @@ fn setup_2d_cameras(mut commands: Commands) {
     //     POPUP_LAYER    
     //     )
     // );
+}
+
+fn parse_url(mut game: ResMut<Game>){
+    #[cfg(target_arch = "wasm32")]
+    {
+        let url = wasm_only::parse_url();
+
+        info!("url={:?}",url);
+
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+pub mod wasm_only{
+    use wasm_bindgen_futures::spawn_local;
+    pub fn parse_url()->String{
+        let window = web_sys::window().expect("Missing Window");
+        let location = window.location();
+        let href=location.href().unwrap();
+        href
+        //info!("href={:?}",href);
+    }
+
+    pub fn copy_url(url: String){
+        spawn_local(async move {
+            let window = web_sys::window().expect("Missing Window");
+            let navigator = window.navigator();
+            let clipboard= navigator.clipboard();
+            let url_clone=url.clone();
+            match clipboard{
+                Some(clipboard)=>{
+                    let p = clipboard.write_text(&url_clone);
+                    let result = wasm_bindgen_futures::JsFuture::from(p)
+                    .await
+                    .expect("clipboard populated");
+                },
+                None=>{}
+            };
+        });
+    }
 }
