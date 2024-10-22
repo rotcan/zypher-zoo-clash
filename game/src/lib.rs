@@ -6,7 +6,7 @@ pub mod error;
 use bevy::{prelude::*};
 use bevy::window::PresentMode;
 use bevy_web3::{plugin::WalletPlugin};
-use crate::game::{Game,load_sprites,CardImages,MenuData,init_ui,start_ui,running_ui,GameStatus, PopupDrawEvent,
+use crate::game::{Game,GameHash,load_sprites,CardImages,MenuData,init_ui,start_ui,running_ui,GameStatus, PopupDrawEvent,
     card_click_interaction,draw_popup, PopupResponseEvent,init_http_resource,UiUpdateEvent,mouse_scroll};
 use crate::web3::{recv_contract_response,do_contract_call,WalletState,ContractState,handle_game_status_change,
     direct_user_interaction,wallet_account,CallContractEvent,InGameContractEvent,
@@ -15,6 +15,7 @@ use crate::web3::{recv_contract_response,do_contract_call,WalletState,ContractSt
     request_contract_data,request_contract_data_if_true,read_editable_text,
     await_http_request,send_http_request,
     };
+use bevy_toast::{ToastPlugin};
 use bevy::render::view::visibility::RenderLayers;
 use std::fmt::Debug;
 use bevy_pkv::PkvStore;
@@ -50,11 +51,9 @@ pub fn start(){
                 }),
                 ..default()
             }))
-        //.add_plugins((MinimalPlugins, PanicHandlerPlugin))
-        //.add_plugins(TextInputPlugin)
         .add_plugins(TextEditPluginNoState)
-        //.add_plugins(EguiPlugin)
         .add_plugins(WalletPlugin)
+        .add_plugins(ToastPlugin)
         .insert_resource(PkvStore::new("Rotcan", "AnimalRaceGame"))
         .init_resource::<MenuData>()
         .init_state::<GameState>()
@@ -70,6 +69,7 @@ pub fn start(){
         //.add_systems(Startup,connect_wallet)
         .insert_resource(CardImages::default())
         .insert_resource(Game::init())
+        .insert_resource(GameHash::init())
         .insert_resource(init_compute_resource())
         .insert_resource(init_http_resource())
         .add_systems(Startup,(setup_2d_cameras,parse_url))
@@ -135,6 +135,7 @@ fn setup_2d_cameras(mut commands: Commands) {
         //Camera2dBundle::default()
         )
     );
+     
     // commands.spawn(
     //     (
     //     Camera2dBundle{

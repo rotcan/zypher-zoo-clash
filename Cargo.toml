@@ -1,6 +1,7 @@
 [workspace]
-members = [
+members = [ 
   "bevy-web3", 
+  "bevy-toast",
   #"bevy-z4",
   "game","shuffle"
 ]

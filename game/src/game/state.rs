@@ -8,6 +8,7 @@ use crate::web3::{PlayerState,MatchState,PlayerCardData,CardProp,GameContractIxT
 use std::collections::{HashMap,BTreeMap};
 use crate::error::GameError;
 use super::{Player};
+use std::hash::{Hash,Hasher,DefaultHasher};
 
 #[derive(Debug,Clone,Default)]
 pub struct PlayerScreenData{
@@ -16,7 +17,25 @@ pub struct PlayerScreenData{
     pub position: Option<usize>,
 }
 
- 
+#[derive(Resource)]
+pub struct GameHash{
+    pub current_hash: u64,
+    pub old_hash: u64,
+}
+
+impl GameHash{
+    pub fn init()->GameHash{
+        Self{current_hash:0,old_hash: 0}
+    }
+}
+
+
+pub fn calculate_hash<T: Hash>(t: &T) -> u64 {
+    let mut s = DefaultHasher::new();
+    t.hash(&mut s);
+    s.finish()
+}
+
 
 #[derive(Resource)]
 pub struct Game{
@@ -40,6 +59,18 @@ pub struct Game{
     pub current_env_card: Option<usize>,
     pub env_cards: Vec<EnvCard>,
     pub match_finished: bool,
+}
+
+impl Hash for Game{
+    fn hash<H: Hasher>(&self, state: &mut H){
+        // self.account.hash(state);
+        // self.account_bytes.hash(state);
+        // self.players_data.hash(state);
+        // self.match_index.hash(state);
+        // self.chain.hash(state);
+        // self.match_state.hash(state);
+        self.match_state.hash(state);
+    }
 }
 
 impl Game{
