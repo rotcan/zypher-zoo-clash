@@ -238,7 +238,7 @@ pub enum Web3ViewEvents{
 }
 
 //Game State
-#[derive(Debug,Serialize,Deserialize,Default,Clone)]
+#[derive(Debug,Serialize,Deserialize,Default,Clone,Hash)]
 pub struct Point {
     pub x: Uint,
     pub y: Uint
@@ -259,7 +259,7 @@ impl TryFrom<Token> for Point{
     }
 }
 
-#[derive(Debug,PartialEq,Eq,Clone,Serialize,Deserialize,)]
+#[derive(Debug,PartialEq,Eq,Clone,Serialize,Deserialize,Hash)]
 #[repr(u64)]
 pub enum MatchStateEnum{
     None,
@@ -298,7 +298,7 @@ impl TryFrom<u64> for MatchStateEnum{
     }
 }
 
-#[derive(Debug,Serialize,Deserialize,Default)]
+#[derive(Debug,Serialize,Deserialize,Default,Hash)]
 pub struct MatchState{
     pub state: MatchStateEnum,
     //PlayerMatchData[] players;
@@ -376,7 +376,7 @@ impl From<Vec<Token>> for MatchState{
         }
     }
 }
-#[derive(Debug,Serialize,Deserialize,Default)]
+#[derive(Debug,Serialize,Deserialize,Default,Hash)]
 pub struct EnvDeck{
     pub cards: Vec<Vec<Uint>>,
     pub env_reveals: Vec<Vec<Vec<Uint>>>,
@@ -446,7 +446,7 @@ impl EnvDeck{
 //     pub card_index: Uint,
 // }
 
-#[derive(Debug,Serialize,Deserialize,Default,Clone)]
+#[derive(Debug,Serialize,Deserialize,Default,Clone,Hash)]
 pub struct PlayerState{
     pub original_cards: Vec<Uint>,
     pub player: Address,

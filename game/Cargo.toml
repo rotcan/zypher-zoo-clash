@@ -9,6 +9,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 #alloy ={workspace=true,features=["providers"]}
 async-channel = {workspace=true}
+bevy-toast= {path="../bevy-toast"}
 async-std = "1.12.0"
 bevy ={workspace=true}
 bevy-web3 = {path="../bevy-web3"}

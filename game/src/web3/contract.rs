@@ -5,9 +5,9 @@ use bevy_web3::{
     error::Error as Web3Error,
 };
 use bevy_web3::types::{Address,U256};
-use crate::game::{Game,GAME_CARD_CONTRACT_ADDRESS,GAME_CONTRACT_ADDRESS,PlayerGameData,GameStatus,PlayerScreenData,
+use crate::game::{Game,GameHash,GAME_CARD_CONTRACT_ADDRESS,GAME_CONTRACT_ADDRESS,PlayerGameData,GameStatus,PlayerScreenData,
     CardComponent,CardImages,PopupDrawEvent,PopupData,hide_popup,CardFace,CardComponentType,RequestExtraData,
-    process_ui_query,UiElementComponent,RevealData,DeckCardType,Player,UiUpdateEvent,
+    process_ui_query,UiElementComponent,RevealData,DeckCardType,Player,UiUpdateEvent,calculate_hash,
     UiElement,BeforeGameElements,MenuData,InGameElements,};
 use super::{ContractState,CardContractViewActionType,GameContractViewActionType,PlayerState,
     MIN_CARD_COUNT,Web3ViewEvents,MatchState,PopupResult,CardProp,EnvCard,vec_to_reveals,
@@ -18,6 +18,7 @@ use super::{ContractState,CardContractViewActionType,GameContractViewActionType,
 use bevy_pkv::PkvStore;
 use crate::GameState;
 use std::collections::HashMap;
+use bevy_toast::ToastEvent;
 //use zshuffle::utils::MaskedCard;
 
 #[derive(Debug)]
@@ -126,24 +127,25 @@ pub fn do_contract_call(
  
 //Bevy system
 pub fn recv_contract_response(contract_channel: ResMut<WalletChannel>,
-    mut next_state: ResMut<NextState<ContractState>>,
-    //state: Res<State<ContractState>>,
-    mut game: ResMut<Game>,
-    mut contract_events_writer: EventWriter<CallContractEvent>,
-    mut commands: Commands,
-    // mut menu_data: ResMut<MenuData>,
-    mut q: Query<(Entity, &mut ContractRequestTimer)>,
-    mut delegate_txn_event: EventWriter<DelegateTxnSendEvent>,
-    mut match_events_writer: EventWriter<InGameContractEvent>,
     mut pkv: ResMut<PkvStore>,
-    mut ui_query: Query<(Entity, &mut UiElementComponent)>,
-    //asset_server : Res<AssetServer>
-    card_images: Res<CardImages>,
-    mut popup_draw_event: EventWriter<PopupDrawEvent>,
+    mut game: ResMut<Game>,
+    mut commands: Commands,
+    mut next_state: ResMut<NextState<ContractState>>,
     mut next_game_state: ResMut<NextState<GameState>>,
     mut next_game_status: ResMut<NextState<GameStatus>>,
-    mut ui_update_event: EventWriter<UiUpdateEvent>,
-
+    mut q: Query<(Entity, &mut ContractRequestTimer)>,
+    mut ui_query: Query<(Entity, &mut UiElementComponent)>,
+    mut state_hash: ResMut<GameHash>,
+    card_images: Res<CardImages>,
+    mut popup_draw_event: EventWriter<PopupDrawEvent>,
+    (mut contract_events_writer, mut delegate_txn_event, mut match_events_writer, mut ui_update_event, mut toast_event_writer):
+    (
+        EventWriter<CallContractEvent>,
+        EventWriter<DelegateTxnSendEvent>,
+        EventWriter<InGameContractEvent>,
+        EventWriter<UiUpdateEvent>,
+        EventWriter<ToastEvent>
+    )
 ){
     // if let ContractState::SendViewCall = state.get(){
         match contract_channel.recv_contract() {
@@ -157,7 +159,8 @@ pub fn recv_contract_response(contract_channel: ResMut<WalletChannel>,
                 process_contract_response(&res,&mut contract_events_writer,&mut game,&mut commands,
                     //&mut menu_data,
                     &mut q,&mut delegate_txn_event,&mut match_events_writer, &mut pkv,&mut ui_query,
-                &card_images,&mut popup_draw_event,&mut next_game_state,&mut next_game_status,&mut ui_update_event);
+                &card_images,&mut popup_draw_event,&mut next_game_state,&mut next_game_status,&mut ui_update_event,
+            &mut state_hash,&mut toast_event_writer);
                 
                 
             },
@@ -190,13 +193,14 @@ pub fn process_contract_response(res: &CallResponse,
     next_game_state: &mut NextState<GameState>,
     next_game_status:  &mut NextState<GameStatus>,
     ui_update_event: &mut EventWriter<UiUpdateEvent>,
-    
+    state_hash:&mut GameHash,
+    toast_event_writer: &mut EventWriter<ToastEvent>,
     ){
         let contract_address=&res.contract_address;
         let method_name=&res.method_name;
         let params=&res.params;
         let address=format!("{}{}","0x",hex::encode(contract_address));
-        // info!("process_contract_response address={:?} method_name={:?}",address,method_name);
+        //info!("process_contract_response address={:?} method_name={:?}",address,method_name);
         
     match address.as_str(){
         GAME_CARD_CONTRACT_ADDRESS=>{
@@ -204,22 +208,17 @@ pub fn process_contract_response(res: &CallResponse,
             let decoded_result = game.card_contract.decode_output(method.get_view_method().as_str(), &res.result).unwrap();
             match method{
                 CardContractViewActionType::GetAllCards=>{
+                    //Keep on doing contract data call
+                    if q.is_empty(){
+                        commands.spawn_empty().insert(ContractRequestTimer::default());
+                    }
                     match &decoded_result{
                         Token::Array(all_cards)=>{
-                            //Keep on doing call
-                            if q.is_empty(){
-                                commands.spawn_empty().insert(ContractRequestTimer::default());
-                            }
-
-                            
                             
                             if all_cards.len() >= MIN_CARD_COUNT as usize {
                             //if processed_cards < MIN_CARD_COUNT as usize {
                                 params.as_ref().map(|m| {
                                     
-                                    // let data = game.card_contract.contract.abi()
-                                    //     .function(CardContractViewActionType::GetAllCards.get_view_method().as_str()).unwrap()
-                                    //     .decode_input(&m[4..]).unwrap(); 
                                     let data = game.card_contract.decode_input(CardContractViewActionType::GetAllCards.get_view_method().as_str(),
                                         &m[4..]).unwrap();
                                     // let address=data[0]
@@ -299,14 +298,16 @@ pub fn process_contract_response(res: &CallResponse,
                                 
                             }else{
                                 
- 
+                                warn!("No cards minted for {} till now",address.as_str());
                             }
                             //let first_val= val.first().unwrap();
                             //info!("GetAllCards first val={:?} for {:?}",first_val,game.account);
                             
                             
                         },
-                        _=>{},
+                        _=>{
+                            warn!("No cards minted for {} till now",address.as_str());
+                        },
                     }
         
                 },
@@ -471,11 +472,6 @@ pub fn process_contract_response(res: &CallResponse,
                                     //Get All cards once for other players
                                     if get_player_index_by_address(&game, &contract_player_state.player).is_none() {
                                         //Get cards
-                                        // let data = game.card_contract.contract.abi()
-                                        // .function(CardContractViewActionType::GetAllCards.get_view_method().as_str()).unwrap()
-                                        // .encode_input(&[
-                                        //     contract_player_state.player.into_token()
-                                        // ]).unwrap(); 
                                         let data = game.card_contract.encode_input(CardContractViewActionType::GetAllCards.get_view_method().as_str(),
                                             &[contract_player_state.player.into_token()]).unwrap();
                                         contract_events_writer.send(CallContractEvent{contract: game.card_contract.clone(), 
@@ -486,7 +482,7 @@ pub fn process_contract_response(res: &CallResponse,
                                     }
 
                                     process_state_update(game,pkv,match_events_writer,next_game_state,next_game_status,&contract_player_state.player,
-                                    ui_update_event,popup_draw_event);
+                                    ui_update_event,popup_draw_event,state_hash,toast_event_writer);
                                     
                                       
                                 },
@@ -547,381 +543,389 @@ pub fn process_state_update(game: &mut Game, pkv: &mut PkvStore,
     next_game_status:  &mut NextState<GameStatus>,updated_player_address: &Address,
 ui_update_event: &mut EventWriter<UiUpdateEvent>,
 popup_draw_event: &mut EventWriter<PopupDrawEvent>,
+state_hash: &mut GameHash,
+toast_event_writer: &mut EventWriter<ToastEvent>,
 // timer_query: &mut Query<(Entity, &mut ContractRequestTimer)>,
 ){
- 
-        if let Some(ref address_bytes)=game.account_bytes{
+    state_hash.current_hash= calculate_hash(&game);
+    if state_hash.current_hash!=state_hash.old_hash{
+        //Hide toast
+        toast_event_writer.send(ToastEvent::HideToast);
+    }
+    state_hash.old_hash= state_hash.current_hash;
 
-            // let player_address = format!("0x{:?}",hex::encode(address_bytes));
-            
-            let player_key=generate_key(&address_bytes, pkv);
-            
-            //Todo!
-            //Update other players data on screen
-            if let Some(ref match_state)=game.match_state{
-                //All players
-                info!("match_state={:?}",match_state.state);
-                if let Some(index)=get_player_index_by_address(&game, updated_player_address) {
-                    let player_data = &game.players_data[index];
-                    if game.screen_data.contains_key(&updated_player_address) == false {
-                        game.screen_data.insert(updated_player_address.clone(), PlayerScreenData::default());
-                    }
-                    
-                    let match_state_u64=match_state.state.clone() as u64;
-                    if match_state_u64>=MatchStateEnum::SetPkc as u64{
-                        if let Some(player_screen_data) = game.screen_data.get_mut(&updated_player_address){
-                            if let Some(position) = player_screen_data.position {
-                                if position != player_data.player_state.position.as_usize() {
-                                    ui_update_event.send(UiUpdateEvent::UpdateTrack);
-                                    ui_update_event.send(UiUpdateEvent::UpdatePlayerLabel);
-                                }
-                            }else{
+    if let Some(ref address_bytes)=game.account_bytes{
+
+        // let player_address = format!("0x{:?}",hex::encode(address_bytes));
+        
+        let player_key=generate_key(&address_bytes, pkv);
+        
+        //Todo!
+        //Update other players data on screen
+        if let Some(ref match_state)=game.match_state{
+            //All players
+            info!("match_state={:?}",match_state.state);
+            if let Some(index)=get_player_index_by_address(&game, updated_player_address) {
+                let player_data = &game.players_data[index];
+                if game.screen_data.contains_key(&updated_player_address) == false {
+                    game.screen_data.insert(updated_player_address.clone(), PlayerScreenData::default());
+                }
+                
+                let match_state_u64=match_state.state.clone() as u64;
+                if match_state_u64>=MatchStateEnum::SetPkc as u64{
+                    if let Some(player_screen_data) = game.screen_data.get_mut(&updated_player_address){
+                        if let Some(position) = player_screen_data.position {
+                            if position != player_data.player_state.position.as_usize() {
                                 ui_update_event.send(UiUpdateEvent::UpdateTrack);
                                 ui_update_event.send(UiUpdateEvent::UpdatePlayerLabel);
                             }
-                            player_screen_data.position=Some(player_data.player_state.position.as_usize());
+                        }else{
+                            ui_update_event.send(UiUpdateEvent::UpdateTrack);
+                            ui_update_event.send(UiUpdateEvent::UpdatePlayerLabel);
                         }
+                        player_screen_data.position=Some(player_data.player_state.position.as_usize());
                     }
-                    if match_state_u64>=MatchStateEnum::RevealPlayersHand as u64
-                    {
-                        if let Some(player_screen_data) = game.screen_data.get_mut(&updated_player_address){
-                            let before_hand_count= player_screen_data.current_hands.len();
-                            
-                            if updated_player_address==address_bytes{
-                                //Hand cards
-                                for hand in player_data.player_state.player_hand.iter() {
-                                    let hand_idx=*hand as usize;
-                                    if player_screen_data.current_hands.contains_key(&hand_idx) == false{
-                                        let card=vec_to_masked_card(&player_data.player_state.player_deck[hand_idx]);
-                                        let reveals=player_data.player_state.player_reveals[hand_idx].iter().map(|m| (u256_to_string(m[0]),
-                                        u256_to_string(m[1]))).collect::<Vec<(String,String)>>();
-                                        let unmasked_card=unmask_card(player_key.sk.clone(),card,reveals).unwrap() ;
-                                        let original_card=player_data.player_state.original_cards[unmasked_card as usize];
-                                        if let Some(card_prop)=player_data.all_cards.all_card_props.get(&original_card) 
-                                        {
-                                            player_screen_data.current_hands.insert(hand_idx,card_prop.clone());
-                                        };
-                                        
-                                    }
+                }
+                if match_state_u64>=MatchStateEnum::RevealPlayersHand as u64
+                {
+                    if let Some(player_screen_data) = game.screen_data.get_mut(&updated_player_address){
+                        let before_hand_count= player_screen_data.current_hands.len();
+                        
+                        if updated_player_address==address_bytes{
+                            //Hand cards
+                            for hand in player_data.player_state.player_hand.iter() {
+                                let hand_idx=*hand as usize;
+                                if player_screen_data.current_hands.contains_key(&hand_idx) == false{
+                                    let card=vec_to_masked_card(&player_data.player_state.player_deck[hand_idx]);
+                                    let reveals=player_data.player_state.player_reveals[hand_idx].iter().map(|m| (u256_to_string(m[0]),
+                                    u256_to_string(m[1]))).collect::<Vec<(String,String)>>();
+                                    let unmasked_card=unmask_card(player_key.sk.clone(),card,reveals).unwrap() ;
+                                    let original_card=player_data.player_state.original_cards[unmasked_card as usize];
+                                    if let Some(card_prop)=player_data.all_cards.all_card_props.get(&original_card) 
+                                    {
+                                        player_screen_data.current_hands.insert(hand_idx,card_prop.clone());
+                                    };
+                                    
                                 }
-                                //player board
-                                if match_state_u64>=MatchStateEnum::PlayerPlayCard as u64{
-                                    if let Some(card) = player_data.all_cards.all_card_props.get(&player_data.player_state.player_board) {
-                                        if let Some(ref screen_card) = player_screen_data.active_card{
-                                            if screen_card != card {
-                                                ui_update_event.send(UiUpdateEvent::UpdateActiveCard{player: Player::Player1});
-                                            }
-                                        }else{
+                            }
+                            //player board
+                            if match_state_u64>=MatchStateEnum::PlayerPlayCard as u64{
+                                if let Some(card) = player_data.all_cards.all_card_props.get(&player_data.player_state.player_board) {
+                                    if let Some(ref screen_card) = player_screen_data.active_card{
+                                        if screen_card != card {
                                             ui_update_event.send(UiUpdateEvent::UpdateActiveCard{player: Player::Player1});
                                         }
-                                        player_screen_data.active_card=Some(card.clone());
+                                    }else{
+                                        ui_update_event.send(UiUpdateEvent::UpdateActiveCard{player: Player::Player1});
                                     }
-                                    
+                                    player_screen_data.active_card=Some(card.clone());
                                 }
-                            }else{
-                                //player board
-                                if match_state_u64>=MatchStateEnum::PlayerPlayCard as u64{
-                                    if let Some(card) = player_data.all_cards.all_card_props.get(&player_data.player_state.player_board) {
-                                        if let Some(ref screen_card) = player_screen_data.active_card{
-                                            if screen_card != card {
-                                                ui_update_event.send(UiUpdateEvent::UpdateActiveCard{player: Player::Player2});
-                                            }
-                                        }else{
-                                            ui_update_event.send(UiUpdateEvent::UpdateActiveCard{player: Player::Player2});
-                                        }
-                                        player_screen_data.active_card=Some(card.clone());
-                                    }
-                                    
-                                }
-                                // if player_data.player_state.player_board > Uint::zero() {
-                                //     if player_screen_data.current_hands.contains_key(&0) == false{
-                                //         if let Some(card_prop)=player_data.all_cards.all_card_props.get(&player_data.player_state.player_board) 
-                                //         {
-                                //             player_screen_data.current_hands.insert(0,card_prop.clone());
-                                //         };
-                                //     }
-                                // }
-                            }
-
-                            //delete extra cards
-                            let keys_to_delete=player_screen_data.current_hands.clone().into_keys()
-                            .collect::<Vec<usize>>()
-                            .into_iter()
-                            .filter(|f| player_data.player_state.player_hand.contains(&(*f as u64))==false)
-                            .collect::<Vec<usize>>();
-    
-                            for key in keys_to_delete.iter(){
-                                player_screen_data.current_hands.remove_entry(key );
-                            };
-                            
-                            if  player_screen_data.current_hands.len() != before_hand_count{
-                                //Update ui
-                                //Send event to update ui
-                                if updated_player_address==address_bytes{
-                                    ui_update_event.send(UiUpdateEvent::UpdateCards{cards: player_data.player_state.player_hand.clone()});
-                                }
-                            }
-
-                            
-                            
-                        }
-                        //Update Track
-                        if let Some(round) = game.current_round {
-                            if round != match_state.rounds {
-                                //Update track
-                                ui_update_event.send(UiUpdateEvent::UpdateTrack);
+                                
                             }
                         }else{
+                            //player board
+                            if match_state_u64>=MatchStateEnum::PlayerPlayCard as u64{
+                                if let Some(card) = player_data.all_cards.all_card_props.get(&player_data.player_state.player_board) {
+                                    if let Some(ref screen_card) = player_screen_data.active_card{
+                                        if screen_card != card {
+                                            ui_update_event.send(UiUpdateEvent::UpdateActiveCard{player: Player::Player2});
+                                        }
+                                    }else{
+                                        ui_update_event.send(UiUpdateEvent::UpdateActiveCard{player: Player::Player2});
+                                    }
+                                    player_screen_data.active_card=Some(card.clone());
+                                }
+                                
+                            }
+                            // if player_data.player_state.player_board > Uint::zero() {
+                            //     if player_screen_data.current_hands.contains_key(&0) == false{
+                            //         if let Some(card_prop)=player_data.all_cards.all_card_props.get(&player_data.player_state.player_board) 
+                            //         {
+                            //             player_screen_data.current_hands.insert(0,card_prop.clone());
+                            //         };
+                            //     }
+                            // }
+                        }
+
+                        //delete extra cards
+                        let keys_to_delete=player_screen_data.current_hands.clone().into_keys()
+                        .collect::<Vec<usize>>()
+                        .into_iter()
+                        .filter(|f| player_data.player_state.player_hand.contains(&(*f as u64))==false)
+                        .collect::<Vec<usize>>();
+
+                        for key in keys_to_delete.iter(){
+                            player_screen_data.current_hands.remove_entry(key );
+                        };
+                        
+                        if  player_screen_data.current_hands.len() != before_hand_count{
+                            //Update ui
+                            //Send event to update ui
+                            if updated_player_address==address_bytes{
+                                ui_update_event.send(UiUpdateEvent::UpdateCards{cards: player_data.player_state.player_hand.clone()});
+                            }
+                        }
+
+                        
+                        
+                    }
+                    //Update Track
+                    if let Some(round) = game.current_round {
+                        if round != match_state.rounds {
                             //Update track
                             ui_update_event.send(UiUpdateEvent::UpdateTrack);
                         }
-                        game.current_round= Some(match_state.rounds);
+                    }else{
+                        //Update track
+                        ui_update_event.send(UiUpdateEvent::UpdateTrack);
+                    }
+                    game.current_round= Some(match_state.rounds);
 
-                        //Update Env
-                        let game_env_index=game.get_current_env_index();
-                        game_env_index.as_ref().map(|m| {
-                            if let Some(ref env) = game.current_env_card {
-                                if env != m {
-                                    ui_update_event.send(UiUpdateEvent::UpdateEnv);
-                                }
-                            }else{
+                    //Update Env
+                    let game_env_index=game.get_current_env_index();
+                    game_env_index.as_ref().map(|m| {
+                        if let Some(ref env) = game.current_env_card {
+                            if env != m {
                                 ui_update_event.send(UiUpdateEvent::UpdateEnv);
                             }
-                            game.current_env_card=Some(*m);
-                        });
-
-                        //Todo! Add play card code
-                    }
-                        
-                        
-                }
-
-                //Current player
-                if let Some(index)=get_player_index_by_address(&game, address_bytes) {
-                    //game.players_data[index].player_state=contract_player_state;
-                    let current_player_data=&game.players_data[index];
-                    if current_player_data.player_state.original_cards.len() == 0 {
-                        //Set creator deck
-                        //info!("Set Creator deck! index={:?}",index);
-                        
-                        //update_status_area(&mut ui_query,commands,GameStatus::SetCreatorDeck);
-                        if current_player_data.player_state.player != match_state.creator{
-                            next_game_status.set(GameStatus::CreateNewMatch);
                         }else{
-                            next_game_status.set(GameStatus::SetCreatorDeck);
+                            ui_update_event.send(UiUpdateEvent::UpdateEnv);
                         }
-                        
-                        
-                    }else{
-                        //Already set 
-                        
-                        let match_state_u64=match_state.state.clone() as u64;
-                        if match_state_u64>=MatchStateEnum::SetPkc as u64{
-                            next_game_state.set(GameState::GameStart);
-                        };
-                        if match_state_u64 >= MatchStateEnum::ShuffleEnvDeck as u64 
-                        && match_state_u64<MatchStateEnum::RevealEnvCard as u64{
-                            if game.pkc.len() == 0 {
-                                //load pkc
-                                
-                                popup_draw_event.send(
-                                    PopupDrawEvent::ShowPopup(PopupData {
-                                        msg: format!("Waiting to init joint key "),
-                                        popup_type: GameStatus::SetJointKeyPreSet as i32,
-                                        action_yes: None,
-                                        action_no : None,
-                                    })
-                                );
+                        game.current_env_card=Some(*m);
+                    });
 
-                                match_events_writer.send(InGameContractEvent::UpdatePKCPopup);
-                                //To stop call again
-                                info!("UpdatePKC send");
-                                game.pkc=vec![U256::zero()];
+                    //Todo! Add play card code
+                }
+                    
+                    
+            }
+
+            //Current player
+            if let Some(index)=get_player_index_by_address(&game, address_bytes) {
+                //game.players_data[index].player_state=contract_player_state;
+                let current_player_data=&game.players_data[index];
+                if current_player_data.player_state.original_cards.len() == 0 {
+                    //Set creator deck
+                    //info!("Set Creator deck! index={:?}",index);
+                    
+                    //update_status_area(&mut ui_query,commands,GameStatus::SetCreatorDeck);
+                    if current_player_data.player_state.player != match_state.creator{
+                        next_game_status.set(GameStatus::CreateNewMatch);
+                    }else{
+                        next_game_status.set(GameStatus::SetCreatorDeck);
+                    }
+                    
+                    
+                }else{
+                    //Already set 
+                    
+                    let match_state_u64=match_state.state.clone() as u64;
+                    if match_state_u64>=MatchStateEnum::SetPkc as u64{
+                        next_game_state.set(GameState::GameStart);
+                    };
+                    if match_state_u64 >= MatchStateEnum::ShuffleEnvDeck as u64 
+                    && match_state_u64<MatchStateEnum::RevealEnvCard as u64{
+                        if game.pkc.len() == 0 {
+                            //load pkc
+                            
+                            popup_draw_event.send(
+                                PopupDrawEvent::ShowPopup(PopupData {
+                                    msg: format!("Waiting to init joint key "),
+                                    popup_type: GameStatus::SetJointKeyPreSet as i32,
+                                    action_yes: None,
+                                    action_no : None,
+                                })
+                            );
+
+                            match_events_writer.send(InGameContractEvent::UpdatePKCPopup);
+                            //To stop call again
+                            info!("UpdatePKC send");
+                            game.pkc=vec![U256::zero()];
+                        }
+                    };
+                    if match_state_u64>=MatchStateEnum::RevealEnvCard as u64{
+                        if game.init_reveal_key ==false{
+                            //init_reveal_key().unwrap();
+                            game.init_reveal_key=true;
+                        };  
+                    };
+                    match match_state.state {
+                        MatchStateEnum::None=>{
+                            if match_state.player_turn != match_state.player_count {
+                                next_game_status.set(GameStatus::WaitingForPlayers);
                             }
-                        };
-                        if match_state_u64>=MatchStateEnum::RevealEnvCard as u64{
-                            if game.init_reveal_key ==false{
-                                //init_reveal_key().unwrap();
-                                game.init_reveal_key=true;
-                            };  
-                        };
-                        match match_state.state {
-                            MatchStateEnum::None=>{
-                                if match_state.player_turn != match_state.player_count {
-                                    next_game_status.set(GameStatus::WaitingForPlayers);
-                                }
-                            },
-                            //Change to playing area in ui from this state
-                            MatchStateEnum::SetPkc=>{
-                                if &match_state.creator == address_bytes{
-                                    //Set Joint key
-                                    next_game_status.set(GameStatus::SetJointKeyPreSet);
-                                    
-                                }else{
-                                    //Wait
-                                    next_game_status.set(GameStatus::WaitingForJointKey);
-                                }
-                            },
-                            MatchStateEnum::ShuffleEnvDeck=>{
-                                //Pkc Set , shuffle
-                                if &match_state.creator == address_bytes {
-                                    
-                                        if match_state.env_deck.is_card_init() == false{
-                                            next_game_status.set(GameStatus::MaskAndShuffleEnvDeck);
-                                        }else{
-                                            next_game_status.set(GameStatus::WaitingForPlayerToShuffleEnvDeck);
-                                        }
-                                    
-                                }else{
-                                    if match_state.env_deck.is_card_init() == true{
-                                        //Shuffle 
-                                        next_game_status.set(GameStatus::ShuffleEnvDeck);
+                        },
+                        //Change to playing area in ui from this state
+                        MatchStateEnum::SetPkc=>{
+                            if &match_state.creator == address_bytes{
+                                //Set Joint key
+                                next_game_status.set(GameStatus::SetJointKeyPreSet);
+                                
+                            }else{
+                                //Wait
+                                next_game_status.set(GameStatus::WaitingForJointKey);
+                            }
+                        },
+                        MatchStateEnum::ShuffleEnvDeck=>{
+                            //Pkc Set , shuffle
+                            if &match_state.creator == address_bytes {
+                                
+                                    if match_state.env_deck.is_card_init() == false{
+                                        next_game_status.set(GameStatus::MaskAndShuffleEnvDeck);
                                     }else{
                                         next_game_status.set(GameStatus::WaitingForPlayerToShuffleEnvDeck);
                                     }
-                                }
-                            },
-                            MatchStateEnum::SubmitSelfDeck=>{
-                                //Pkc Set , shuffle
                                 
-                                if current_player_data.player_state.done == false{
-                                    next_game_status.set(GameStatus::ShuffleYourDeck);
+                            }else{
+                                if match_state.env_deck.is_card_init() == true{
+                                    //Shuffle 
+                                    next_game_status.set(GameStatus::ShuffleEnvDeck);
                                 }else{
-                                    next_game_status.set(GameStatus::WaitingForPlayerToShuffleCards);
+                                    next_game_status.set(GameStatus::WaitingForPlayerToShuffleEnvDeck);
                                 }
-                                
-                            
-                            },
-                            MatchStateEnum::ShuffleOpponentDeck=>{
-                                
-        
+                            }
+                        },
+                        MatchStateEnum::SubmitSelfDeck=>{
                             //Pkc Set , shuffle
-                            //info!("current_player_data.player_state.done={:?} {:?}",current_player_data.player_state.done,current_player_data.player_state.player ); 
-                                if current_player_data.player_state.done == false{
-                                    next_game_status.set(GameStatus::ShuffleOthersDeck);
-                                }else{
-                                    next_game_status.set(GameStatus::WaitingForPlayerToShuffleCards);
-                                }
+                            
+                            if current_player_data.player_state.done == false{
+                                next_game_status.set(GameStatus::ShuffleYourDeck);
+                            }else{
+                                next_game_status.set(GameStatus::WaitingForPlayerToShuffleCards);
+                            }
+                            
+                        
+                        },
+                        MatchStateEnum::ShuffleOpponentDeck=>{
+                            
+    
+                        //Pkc Set , shuffle
+                        //info!("current_player_data.player_state.done={:?} {:?}",current_player_data.player_state.done,current_player_data.player_state.player ); 
+                            if current_player_data.player_state.done == false{
+                                next_game_status.set(GameStatus::ShuffleOthersDeck);
+                            }else{
+                                next_game_status.set(GameStatus::WaitingForPlayerToShuffleCards);
+                            }
+                            
+                        
+                        },
+                        MatchStateEnum::RevealEnvCard=>{
+                            
+                            //if current_player_data.player_state.done == false{
+                            if match_state.is_env_revealed_by_player(current_player_data.player_state.player_index) == false{
+                                next_game_status.set(GameStatus::RevealEnvCard);
+                                
+                            }else{
+                                next_game_status.set(GameStatus::WaitingForRevealCards);
+                                
+                            }
+                            
+                            
+                        },
+                        MatchStateEnum::RevealPlayersHand=>{
+                            
+                            let others=are_other_players_card_revealed_by_current_player(&game, &address_bytes);
+                            if others.len() > 0{
+                                // update_status_area(&mut ui_query,commands,GameStatus::RevealOtherPlayerCards);
+                                next_game_status.set(GameStatus::RevealOtherPlayerCards);
+                            }else{
+                                //update_status_area(&mut ui_query,commands,GameStatus::WaitingForRevealCards);
+                                next_game_status.set(GameStatus::WaitingForRevealCards);
+                            }
                                 
                             
-                            },
-                            MatchStateEnum::RevealEnvCard=>{
-                                
-                                //if current_player_data.player_state.done == false{
-                                if match_state.is_env_revealed_by_player(current_player_data.player_state.player_index) == false{
-                                    next_game_status.set(GameStatus::RevealEnvCard);
-                                    
-                                }else{
-                                    next_game_status.set(GameStatus::WaitingForRevealCards);
-                                    
-                                }
-                                
-                                
-                            },
-                            MatchStateEnum::RevealPlayersHand=>{
-                                
-                                let others=are_other_players_card_revealed_by_current_player(&game, &address_bytes);
-                                if others.len() > 0{
-                                    // update_status_area(&mut ui_query,commands,GameStatus::RevealOtherPlayerCards);
-                                    next_game_status.set(GameStatus::RevealOtherPlayerCards);
-                                }else{
-                                    //update_status_area(&mut ui_query,commands,GameStatus::WaitingForRevealCards);
-                                    next_game_status.set(GameStatus::WaitingForRevealCards);
-                                }
-                                 
-                                
-                            },
-                            MatchStateEnum::PlayerPlayCard=>{
-                                //printHandCards
-                                //Todo remove
+                        },
+                        MatchStateEnum::PlayerPlayCard=>{
+                            //printHandCards
+                            //Todo remove
 
-                                // game.match_finished=true;
-                                // // next_game_state.set(GameState::GameEnd);
-                                // popup_draw_event.send(
-                                //     PopupDrawEvent::ShowMatchEndPopup
-                                // );
+                            // game.match_finished=true;
+                            // // next_game_state.set(GameState::GameEnd);
+                            // popup_draw_event.send(
+                            //     PopupDrawEvent::ShowMatchEndPopup
+                            // );
+                            
+                            //Current players turn
+                            let player_action  = PlayerAction::from_value(match_state.player_turn_type as i32);
+                            if current_player_data.player_state.player_index == match_state.player_turn {
                                 
-                                //Current players turn
-                                let player_action  = PlayerAction::from_value(match_state.player_turn_type as i32);
-                                if current_player_data.player_state.player_index == match_state.player_turn {
-                                    
-                                    match player_action {
-                                        PlayerAction::None=>{
-                                            //Show player action
-                                            next_game_status.set(GameStatus::PlayerAction);
-                                        },
-                                        PlayerAction::ShowEnvCard=>{
-                                            //Show env card
-                                            if match_state.is_env_revealed_by_player(current_player_data.player_state.player_index) == false{
-                                                next_game_status.set(GameStatus::RevealEnvCard);
-                                            }else{
-                                                next_game_status.set(GameStatus::WaitingForRevealCards);
-                                            }
-                                        },
-                                        PlayerAction::ShowPlayerCard=>{
-                                            //Player player card
-                                            if current_player_data.player_state.player_reveal_count != current_player_data.player_state.next_round_player_reveal_count {
-                                                //First reveal then play card on deck
-                                                next_game_status.set(GameStatus::WaitingForRevealCards);
-                                            }else{
-                                                next_game_status.set(GameStatus::PlayCardOnDeck);
-                                            }
-                                        },
-                                    }
-                                }else{
-                                    match player_action {
-                                        PlayerAction::None=>{
-                                            //Show player action
-                                            next_game_status.set(GameStatus::WaitingForOtherPlayerToPlayCard);
-                                        },
-                                        PlayerAction::ShowEnvCard=>{
-                                            //Show env card
-                                            if match_state.is_env_revealed_by_player(current_player_data.player_state.player_index) == false{
-                                                next_game_status.set(GameStatus::RevealEnvCard);
-                                            }else{
-                                                next_game_status.set(GameStatus::WaitingForOtherPlayerToPlayCard);
-                                            }
-                                        },
-                                        PlayerAction::ShowPlayerCard=>{
-                                            //Player player card
-                                            if are_other_players_card_need_to_be_revealed(&game,&address_bytes).len() > 0{
-                                                //Reveal cards
-                                                next_game_status.set(GameStatus::RevealOtherPlayerCards);
-                                            }else{
-                                                next_game_status.set(GameStatus::WaitingForOtherPlayerToPlayCard);
-                                            }
+                                match player_action {
+                                    PlayerAction::None=>{
+                                        //Show player action
+                                        next_game_status.set(GameStatus::PlayerAction);
+                                    },
+                                    PlayerAction::ShowEnvCard=>{
+                                        //Show env card
+                                        if match_state.is_env_revealed_by_player(current_player_data.player_state.player_index) == false{
+                                            next_game_status.set(GameStatus::RevealEnvCard);
+                                        }else{
+                                            next_game_status.set(GameStatus::WaitingForRevealCards);
+                                        }
+                                    },
+                                    PlayerAction::ShowPlayerCard=>{
+                                        //Player player card
+                                        if current_player_data.player_state.player_reveal_count != current_player_data.player_state.next_round_player_reveal_count {
                                             //First reveal then play card on deck
-                                            
-                                        },
-                                    }
-                                    //Wait for your turn
-                                    
+                                            next_game_status.set(GameStatus::WaitingForRevealCards);
+                                        }else{
+                                            next_game_status.set(GameStatus::PlayCardOnDeck);
+                                        }
+                                    },
                                 }
+                            }else{
+                                match player_action {
+                                    PlayerAction::None=>{
+                                        //Show player action
+                                        next_game_status.set(GameStatus::WaitingForOtherPlayerToPlayCard);
+                                    },
+                                    PlayerAction::ShowEnvCard=>{
+                                        //Show env card
+                                        if match_state.is_env_revealed_by_player(current_player_data.player_state.player_index) == false{
+                                            next_game_status.set(GameStatus::RevealEnvCard);
+                                        }else{
+                                            next_game_status.set(GameStatus::WaitingForOtherPlayerToPlayCard);
+                                        }
+                                    },
+                                    PlayerAction::ShowPlayerCard=>{
+                                        //Player player card
+                                        if are_other_players_card_need_to_be_revealed(&game,&address_bytes).len() > 0{
+                                            //Reveal cards
+                                            next_game_status.set(GameStatus::RevealOtherPlayerCards);
+                                        }else{
+                                            next_game_status.set(GameStatus::WaitingForOtherPlayerToPlayCard);
+                                        }
+                                        //First reveal then play card on deck
+                                        
+                                    },
+                                }
+                                //Wait for your turn
                                 
-                                //Play cards
-                                //
-                                
-                            },
-                            MatchStateEnum::Finished=>{
-                                //Show popup , with create / join
-                                //This will keep on going
-                                //Do a loop for get all cards
-                                next_game_status.set(GameStatus::Finished);
-                                game.match_finished=true;
-                                // next_game_state.set(GameState::GameEnd);
-                                popup_draw_event.send(
-                                    PopupDrawEvent::ShowMatchEndPopup
-                                );
-                            },
-                        }
-                        
+                            }
+                            
+                            //Play cards
+                            //
+                            
+                        },
+                        MatchStateEnum::Finished=>{
+                            //Show popup , with create / join
+                            //This will keep on going
+                            //Do a loop for get all cards
+                            next_game_status.set(GameStatus::Finished);
+                            game.match_finished=true;
+                            // next_game_state.set(GameState::GameEnd);
+                            popup_draw_event.send(
+                                PopupDrawEvent::ShowMatchEndPopup
+                            );
+                        },
                     }
+                    
                 }
             }
-
-            
-            
         }
+
+        
+        
+    }
        
 }
 
@@ -1140,11 +1144,7 @@ pub fn request_contract_data(
             {
                 if match_index > U256::zero() 
                 {
-                    // let data = game.game_contract.contract.abi()
-                    //                 .function(GameContractViewActionType::GetMatch.get_view_method().as_str()).unwrap()
-                    //                 .encode_input(&[
-                    //                     match_index.clone().into_token()
-                    //                 ]).unwrap(); 
+                    
                     let data = game.game_contract.encode_input(GameContractViewActionType::GetMatch.get_view_method().as_str(),
                     &[ match_index.clone().into_token()]).unwrap();
                                 
@@ -1156,12 +1156,7 @@ pub fn request_contract_data(
                         
                     game.match_state.as_ref().map(|match_state|{
                         for i in 0..match_state.player_count {
-                            // let data = game.game_contract.contract.abi()
-                            //     .function(GameContractViewActionType::GetPlayerDataByIndex.get_view_method().as_str()).unwrap()
-                            //     .encode_input(&[
-                            //         Token::Uint(match_index.clone()),
-                            //         Token::Uint(i.clone().into())
-                            //     ]).unwrap(); 
+                          
                             let data = game.game_contract.encode_input(GameContractViewActionType::GetPlayerDataByIndex.get_view_method().as_str(),
                              &[ Token::Uint(match_index.clone()),Token::Uint(i.clone().into())]).unwrap();
                             contract_events_writer.send(CallContractEvent{contract: game.game_contract.clone(), 
@@ -1172,11 +1167,7 @@ pub fn request_contract_data(
 
                     if game.env_cards.len() == 0{
                         //get env cards
-                        // let data = game.game_contract.contract.abi()
-                        // .function(GameContractViewActionType::GetMatchEnvCards.get_view_method().as_str()).unwrap()
-                        // .encode_input(&[
-                        //     match_index.clone().into_token()
-                        // ]).unwrap(); 
+                        
                         let data = game.game_contract.encode_input(GameContractViewActionType::GetMatchEnvCards.get_view_method().as_str(),
                              &[ match_index.clone().into_token()]).unwrap();
                     
@@ -1192,31 +1183,23 @@ pub fn request_contract_data(
                 
                 }else
                 {
-                    //info!("1072");
+           
                     game.account_bytes.as_ref().map(|account| {
                         //Get all cards
-                        if let Some(index) = get_player_index_by_address(&game, account) {
-                            // let data = game.card_contract.contract.abi()
-                            // .function(CardContractViewActionType::GetAllCards.get_view_method().as_str()).unwrap()
-                            // .encode_input(&[
-                            //     get_address_from_string(&hex::encode(account)).unwrap().into_token()
-                            // ]).unwrap(); 
-                            let data = game.card_contract.encode_input(CardContractViewActionType::GetAllCards.get_view_method().as_str(),
-                             &[  get_address_from_string(&hex::encode(account)).unwrap().into_token()]).unwrap();
-                            
-                            contract_events_writer.send(CallContractEvent{contract: game.card_contract.clone(), 
-                            method:Web3ViewEvents::CardContractViewActionType(CardContractViewActionType::GetAllCards), 
-                            params: CallContractParam::Data(data),
-                            });
-                        };
+                        // if let Some(index) = get_player_index_by_address(&game, account) {
+                           
+                        // };
+                        let data = game.card_contract.encode_input(CardContractViewActionType::GetAllCards.get_view_method().as_str(),
+                        &[  get_address_from_string(&hex::encode(account)).unwrap().into_token()]).unwrap();
+                       
+                       contract_events_writer.send(CallContractEvent{contract: game.card_contract.clone(), 
+                       method:Web3ViewEvents::CardContractViewActionType(CardContractViewActionType::GetAllCards), 
+                       params: CallContractParam::Data(data),
+                       });
 
                         let account_str=game.account.clone().unwrap();
                         //Get current match
-                        // let data = game.game_contract.contract.abi()
-                        // .function(GameContractViewActionType::GetCurrentMatch.get_view_method().as_str()).unwrap()
-                        // .encode_input(&[
-                        //     get_address_from_string(&account_str).unwrap().into_token()
-                        // ]).unwrap(); 
+                      
                         let data = game.game_contract.encode_input(GameContractViewActionType::GetCurrentMatch.get_view_method().as_str(),
                              &[  get_address_from_string(&account_str).unwrap().into_token()]).unwrap();
                         contract_events_writer.send(CallContractEvent{contract: game.game_contract.clone(), 
@@ -1230,11 +1213,6 @@ pub fn request_contract_data(
             {
                 game.account_bytes.as_ref().map(|account| {
                     if let Some(index) = get_player_index_by_address(&game, account) {
-                        // let data = game.card_contract.contract.abi()
-                        // .function(CardContractViewActionType::GetAllCards.get_view_method().as_str()).unwrap()
-                        // .encode_input(&[
-                        //     get_address_from_string(&hex::encode(account)).unwrap().into_token()
-                        // ]).unwrap(); 
                         let data = game.card_contract.encode_input(CardContractViewActionType::GetAllCards.get_view_method().as_str(),
                              &[ get_address_from_string(&hex::encode(account)).unwrap().into_token()]).unwrap();
 

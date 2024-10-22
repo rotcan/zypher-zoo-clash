@@ -25,6 +25,8 @@ use bevy_pkv::PkvStore;
 use bevy_text_edit::{ TextEditable};
 use bevy_web3::types::U256;
 use std::collections::HashMap;
+use bevy_toast::{ToastEvent,ToastData};
+
 
 #[derive(Debug,PartialEq)]
 pub enum ViewType{
@@ -218,28 +220,7 @@ pub fn direct_user_interaction(
                                                         })
                                                     );
                                                     match_events_writer.send(InGameContractEvent::MaskAndShuffleEnvDeckPopup);
-                                                    // if let Some(ref from) = game.account {
-                                                    //     let bytes=game.account_bytes.clone().unwrap();
-                                                                    
-                                                    //     if let Some(ref match_state) = game.match_state{
-                                                    //             //creator
-                                                    //             if &bytes == &match_state.creator {
-                                                    //                 match send_txn_mask_and_shuffle_env_deck(&wallet,game.game_contract.clone(),
-                                                    //                 from.clone(),ix_type, game.match_index, match_state.game_key.clone(), DECK_SIZE as i32){
-                                                    //                     Ok(_)=>{
-                                                    //                         next_contract_state.set(ContractState::SendTransaction)
-                                                    //                     },
-                                                    //                     Err(e)=>error!("{e:?}"),
-                                                    //                 };
-                                                    //                 // if let Some(index) = get_player_index_by_address(&game, &bytes) {
-                                                    //                 //     //let current_player_data=&game.players_data[index];
-                                                                        
-                                                    //                 // }else{
-                                                    //                 //     error!("Not possible");
-                                                    //                 // }
-                                                    //             } 
-                                                    //     }
-                                                    // }
+                                                    
                                                 },
                                                 GameContractIxType::ShuffleEnvDeck =>{
                                                     popup_draw_event.send(
@@ -251,25 +232,7 @@ pub fn direct_user_interaction(
                                                         })
                                                     );
                                                     match_events_writer.send(InGameContractEvent::ShuffleEnvDeckPopup);
-                                                    // if let Some(ref from) = game.account {
-                                                    //     let bytes=game.account_bytes.clone().unwrap();
-                                                                    
-                                                    //     if let Some(ref match_state) = game.match_state{
-                                                    //         if let Some(index) = get_player_index_by_address(&game, &bytes) {
-                                                    //             let current_player_data=&game.players_data[index];
-                                                    //             if current_player_data.player_state.done == false{
-                                                    //                 match send_txn_shuffle_env_deck(&wallet,game.game_contract.clone(),
-                                                    //                 from.clone(),ix_type, game.match_index, match_state.game_key.clone(),match_state.env_deck.cards.clone()){
-                                                    //                     Ok(_)=>{
-                                                    //                         next_contract_state.set(ContractState::SendTransaction)
-                                                    //                     },
-                                                    //                     Err(e)=>error!("{e:?}"),
-                                                    //                 };
-                                                    //             }
-                                                                
-                                                    //         }
-                                                    //     }
-                                                    // }
+                                                    
                                                 },
                                                 GameContractIxType::ShuffleYourDeck=>{
                                                     popup_draw_event.send(
@@ -282,25 +245,7 @@ pub fn direct_user_interaction(
                                                     );
                                                     match_events_writer.send(InGameContractEvent::ShuffleYourDeckPopup);
 
-                                                    // if let Some(ref from) = game.account {
-                                                    //     let bytes=game.account_bytes.clone().unwrap();
-                                                                    
-                                                    //     if let Some(ref match_state) = game.match_state{
-                                                    //         if let Some(index) = get_player_index_by_address(&game, &bytes) {
-                                                    //             let current_player_data=&game.players_data[index];
-                                                    //             if current_player_data.player_state.done == false{
-                                                    //                 match send_txn_shuffle_self_deck(&wallet,game.game_contract.clone(),
-                                                    //                 from.clone(),ix_type, game.match_index, match_state.game_key.clone(), DECK_SIZE as i32){
-                                                    //                     Ok(_)=>{
-                                                    //                         next_contract_state.set(ContractState::SendTransaction)
-                                                    //                     },
-                                                    //                     Err(e)=>error!("{e:?}"),
-                                                    //                 };
-                                                    //             }
-                                                                
-                                                    //         }
-                                                    //     }
-                                                    // }
+                                                    
                                                 },
                                                 GameContractIxType::ShuffleOthersDeck=>{
                                                     popup_draw_event.send(
@@ -312,34 +257,7 @@ pub fn direct_user_interaction(
                                                         })
                                                     );
                                                     match_events_writer.send(InGameContractEvent::ShuffleOthersDeckPopup);
-                                                    // if let Some(ref from) = game.account {
-                                                    //     let bytes=game.account_bytes.clone().unwrap();
-                                                                    
-                                                    //     if let Some(ref match_state) = game.match_state{
-                                                    //         if let Some(index) = get_player_index_by_address(&game, &bytes) {
-                                                    //             let current_player_data=&game.players_data[index];
-                                                    //             if current_player_data.player_state.done == false{
-                                                    //                 //Todo! pass other users address and deck
-                                                    //                 let other_index_iter=get_player_index_not_by_address(&game,&bytes);
-                                                    //                 other_index_iter.iter().for_each(|other_index| {
-                                                    //                         let player_data= &game.players_data[other_index.clone()];
-                                                    //                         info!("shuffle others deck index={:?} other_index={:?}",index,other_index);
-                                                    //                         match send_txn_shuffle_others_deck(&wallet,game.game_contract.clone(),
-                                                    //                         from.clone(),ix_type, game.match_index, match_state.game_key.clone(),
-                                                    //                         player_data.player_state.player.clone(),player_data.player_state.player_deck.clone() ){
-                                                    //                             Ok(_)=>{
-                                                    //                                 next_contract_state.set(ContractState::SendTransaction)
-                                                    //                             },
-                                                    //                             Err(e)=>error!("{e:?}"),
-                                                    //                         };
-                                                    //                     }
-                                                    //                 );
-                                                                    
-                                                    //             }
-                                                                
-                                                    //         }
-                                                    //     }
-                                                    // }
+                                                    
                                                 },
                                                 GameContractIxType::RevealEnvCard=>{
                                                     //Do api call
@@ -558,11 +476,7 @@ pub fn delegate_txn_call(
     for event in delegate_txn_event.read(){
         match event{
             DelegateTxnSendEvent::LoadMatch=>{
-                // let data = game.game_contract.contract.abi()
-                // .function(GameContractViewActionType::GetMatch.get_view_method().as_str()).unwrap()
-                // .encode_input(&[
-                //     game.match_index.into_token()
-                // ]).unwrap(); 
+                
                 let data = game.game_contract.encode_input(GameContractViewActionType::GetMatch.get_view_method().as_str(),
                 &[game.match_index.into_token()]).unwrap();
                 contract_events_writer.send(CallContractEvent{contract: game.game_contract.clone(), 
@@ -647,12 +561,7 @@ pub fn delegate_txn_call(
                                     },
                                     Err(e)=>error!("{e:?}"),
                                 };
-                                // if let Some(index) = get_player_index_by_address(&game, &bytes) {
-                                //     //let current_player_data=&game.players_data[index];
-                                    
-                                // }else{
-                                //     error!("Not possible");
-                                // }
+                                
                             } 
                     }
                 }
@@ -839,12 +748,7 @@ pub fn wallet_account(
     mut next_contract_state: ResMut<NextState<ContractState>>,
     mut contract_events_writer: EventWriter<CallContractEvent>,
     mut ui_query: Query<(Entity, &mut UiElementComponent)>,
-    //asset_server: Res<AssetServer>,
-    // card_images: Res<CardImages>
-    //elements_query: Query<&UiElement>,
-    // mut delegate_contract_call: EventWriter<DelegateTxnResponseEvent>,
-    // mut pkv: ResMut<PkvStore>,
-    
+    mut toast_event_writer: EventWriter<ToastEvent>,
 ) 
 {
     //Todo!: For now Only handle disconnect to connect
@@ -857,31 +761,24 @@ pub fn wallet_account(
                 game.account = Some(hex::encode(&account));
                 game.chain = network.as_u64();
                 next_wallet_state.set(WalletState::Connected);
-                // next_state.set(GameState::Listing);
-                //Send get cards event
-                // let data = game.card_contract.contract.abi()
-                // .function(CardContractViewActionType::GetAllCards.get_view_method().as_str()).unwrap()
-                // .encode_input(&[
-                //     get_address_from_string(&hex::encode(account)).unwrap().into_token()
-                // ]).unwrap(); 
+                 
                 let data = game.card_contract.encode_input(CardContractViewActionType::GetAllCards.get_view_method().as_str(),
                 &[get_address_from_string(&hex::encode(account)).unwrap().into_token()]).unwrap();
                 
                 contract_events_writer.send(CallContractEvent{contract: game.card_contract.clone(), 
                 method:Web3ViewEvents::CardContractViewActionType(CardContractViewActionType::GetAllCards), 
-                //params: CallContractParam::Single(get_address_from_string(&hex::encode(account)).unwrap().into_token())
                 params: CallContractParam::Data(data),
                 });
                  
-
-                //Render button Init Player 
-                // menu_data.remove_entity(&mut commands);
-                // insert_entity_init_player(&mut commands,&mut menu_data);
-
+               
                 process_ui_query(&mut ui_query,&mut commands, 
                     UiElement::BeforeGame(BeforeGameElements::Status),
                     Some(GameStatus::InitPlayer),None,None,&game);
                 
+                 //Test toast
+                 toast_event_writer.send(ToastEvent::ShowToast{data: ToastData{content: "Loading...".to_owned(),timeout_secs: 15., 
+                ..default()}});
+ 
                 //Test shuffle
                 // generate_key(&account,&mut pkv);
                 // info!("get_proof_token {:?}",convert_string_to_u256("0x2da8e5abccfc535e01b1eef0f4ec18361b5f7309fa6e15ce0a5a670eadc7d55e".to_owned()));

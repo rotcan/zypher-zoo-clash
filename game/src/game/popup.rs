@@ -1,11 +1,11 @@
 use bevy::prelude::*;
 
 use crate::{MAIN_LAYER,OVERLAY_LAYER,POPUP_LAYER};
-use super::{create_node_bundle,create_styled_node_bundle,create_text_bundle,add_button,create_sprite_bundle,add_editable_button,DeckCardType,Player,
+use super::{create_node_bundle,create_styled_node_bundle,create_text_bundle,add_button,add_editable_button,DeckCardType,Player,
     CardComponentType,CardFace,DeckType,OutlineArgs,
     GameStatus,MenuData,CardImages,StyleArgs,Game,CardComponent,add_active_card,CARD_HEIGHT,add_text,UiElementComponent,UiElement,InGameElements,
 };
-use crate::web3::{GameActions,PopupResult,ActionType,CardProp,get_player_index_by_address,Web3Actions,GameContractIxType,};
+use crate::web3::{GameActions,PopupResult,ActionType,get_player_index_by_address,Web3Actions,GameContractIxType,};
 
 #[derive(Debug)]
 pub struct PopupData{

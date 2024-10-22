@@ -19,7 +19,8 @@ use bevy::render::view::visibility::RenderLayers;
 // use bevy_pkv::PkvStore;
 // use crate::GameState;
 use crate::game::Game;
-use bevy::window::PrimaryWindow;
+//use bevy::window::PrimaryWindow;
+//use bevy_toast::{ToastEvent,ToastData};
 
 pub const CARD_WIDTH: f32=150.;
 pub const CARD_HEIGHT: f32=183.;
@@ -1291,7 +1292,8 @@ fn remove_card(commands: &mut Commands, entity : Entity, ){
 ///Game UI Pages
 //Systems
 pub fn init_ui(mut commands: Commands,
-    mut menu_data: ResMut<MenuData>) {
+    mut menu_data: ResMut<MenuData>,
+) {
         let layer=MAIN_LAYER;
         lazy_check_main_entity( &mut  menu_data,  &mut commands);
         if let Some(main_entity) = menu_data.main_entity{
@@ -1330,6 +1332,8 @@ pub fn init_ui(mut commands: Commands,
                         align_items: AlignItems::Center,
                     ..default()});
             commands.entity(main_entity).add_child(other_card_entity);
+
+           
         }
     
 }
