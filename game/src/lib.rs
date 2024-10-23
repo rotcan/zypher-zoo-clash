@@ -6,7 +6,7 @@ pub mod error;
 use bevy::{prelude::*};
 use bevy::window::PresentMode;
 use bevy_web3::{plugin::WalletPlugin};
-use crate::game::{Game,GameHash,load_sprites,CardImages,MenuData,init_ui,start_ui,running_ui,GameStatus, PopupDrawEvent,
+use crate::game::{Game,GameHash,load_sprites,CardImages,MenuData,init_ui,start_ui,GameStatus, PopupDrawEvent,
     card_click_interaction,draw_popup, PopupResponseEvent,init_http_resource,UiUpdateEvent,mouse_scroll};
 use crate::web3::{recv_contract_response,do_contract_call,WalletState,ContractState,handle_game_status_change,
     direct_user_interaction,wallet_account,CallContractEvent,InGameContractEvent,
@@ -79,9 +79,6 @@ pub fn start(){
         )
         .add_systems(OnEnter(GameState::GameStart),
             start_ui,
-        )
-        .add_systems(OnEnter(GameState::GameRunning),
-            running_ui,
         )
         // .add_systems(OnEnter(GameState::GameEnd),
         //     running_ui,

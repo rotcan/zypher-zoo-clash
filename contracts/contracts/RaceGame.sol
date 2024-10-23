@@ -90,7 +90,7 @@ contract RaceGame is Ownable{
         uint256 matchId=currentMatch[player];
         if(matchId<_matchCounter){
             IState.Match storage mt = matches[currentMatch[player]];
-            if(mt.playerCount >0 && mt.isFinished==0)
+            if(mt.playerCount >0 && mt.state==IState.MatchState.Finished)
                 revert MatchAlreadyExistsForPlayer(player);
         }
         _;
@@ -127,12 +127,12 @@ contract RaceGame is Ownable{
             if(msg.value>0)
                 revert PayableError(0, msg.value);
         }
-        batchMint(player, INIT_MINT_COUNT, uint8(IState.CardRarity.A));   
+        batchMint(player, INIT_MINT_COUNT, uint8(IState.CardRarity.A),0);   
     }
 
 
-    function batchMint(address to, uint32 nftCount, uint8 minAllowedType) internal {
-        uint256 requestId=_vrf.requestRandomWords(to,nftCount,minAllowedType,0,0);
+    function batchMint(address to, uint32 nftCount, uint8 minAllowedType,uint256 matchId) internal {
+        uint256 requestId=_vrf.requestRandomWords(to,nftCount,minAllowedType,matchId,0);
         emit RequestSent(requestId, nftCount);
     }
      
@@ -837,7 +837,7 @@ contract RaceGame is Ownable{
             _match.players[i].playerRevealProofIndex=0;
             if(_match.players[i].position>=WINNING_SCORE){
                 //win
-                _match.isFinished=1;
+                // _match.isFinished=1;
                 winCount[_match.players[i].player]+=1 ;
                 _match.state= IState.MatchState.Finished;
                 _match.winner=_match.players[i].player;
@@ -845,9 +845,9 @@ contract RaceGame is Ownable{
                     currentMatch[_match.players[j].player]=0; 
                 }
                 if(winCount[_match.players[i].player]%3==0){
-                    batchMint(_match.players[i].player, 1, uint8(IState.CardRarity.S));
+                    batchMint(_match.players[i].player, 1, uint8(IState.CardRarity.S),matchIndex);
                 }else{
-                    batchMint(_match.players[i].player, 1, uint8(IState.CardRarity.A));
+                    batchMint(_match.players[i].player, 1, uint8(IState.CardRarity.A),matchIndex);
                 }
                 return;
             }

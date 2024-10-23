@@ -7,6 +7,7 @@ use serde::{Serialize,Deserialize};
 use bevy_web3::types::U256;
 use std::collections::{BTreeMap};
 use std::time::Duration;
+use std::hash::{Hash,Hasher};
 
 pub const VRF_MIN_BALANCE: u128=100000000000000u128;
 pub const MIN_CARD_COUNT: u128 =20;
@@ -21,17 +22,51 @@ pub enum WalletState{
     
 }
 
-#[derive(Clone,Eq,PartialEq,Debug,Hash,Default,States)]
+#[derive(Clone,Debug,PartialEq,Eq,Default,States)]
 pub enum ContractState{
     #[default]
+    None,
     Waiting,
     SendTransaction,
     //TransactionPending,
-    TransactionResult,
+    TransactionResult{estimated_wait_time: Option<u32>},
     // SendViewCall,
     //ViewCallPending,
     // ViewCallResult
 }
+
+impl Hash for ContractState{
+    fn hash<H: Hasher>(&self, state: &mut H){
+        match &self{
+            Self::None=>{state.write_u8(0);},
+            Self::Waiting=>{state.write_u8(1);},
+            Self::SendTransaction=>{state.write_u8(2);},
+            Self::TransactionResult{..}=>{
+                state.write_u8(3);
+            }
+            
+        };
+    }
+}
+
+// impl PartialEq for ContractState{
+//     fn eq(&self, other: &Self) -> bool {
+//         if let Self::TransactionResult{..} = &self {
+//             if let Self::TransactionResult{..} = &other {
+//                 return true;
+//             }else{
+//                 return false;
+//             }
+//         }else{
+//             if let Self::TransactionResult{..} = &other {
+//                 return false;
+//             }else{
+//                 return &self == &other;
+//             }
+//         };
+//     }
+// }
+// impl Eq for ContractState{}
 
 #[derive(Clone,Eq,PartialEq,Debug,Hash)]
 #[repr(i32)]
@@ -309,12 +344,13 @@ pub struct MatchState{
     pub player_turn: u64,
     pub player_turn_type: u64,
     pub reveal_env: u64,
-    pub is_finished: u64,
+    // pub is_finished: u64,
     pub turn_start: u64,
     pub rounds: u64,
     pub winner: Address,
     pub env_deck: EnvDeck, 
     pub creator: Address,
+    pub winners_card: Uint,
 }
 
 fn extract_from_tuple(v: Token)->Vec<Token>{
@@ -367,12 +403,13 @@ impl From<Vec<Token>> for MatchState{
             player_turn:  get_uint_from_token(item[3+inc].clone()).as_u64(),
             player_turn_type:  get_uint_from_token(item[4+inc].clone()).as_u64(),
             reveal_env:  get_uint_from_token(item[5+inc].clone()).as_u64(),
-            is_finished:  get_uint_from_token(item[6+inc].clone()).as_u64(),
-            turn_start:  get_uint_from_token(item[7+inc].clone()).as_u64(),
-            rounds:  get_uint_from_token(item[8+inc].clone()).as_u64(),
-            winner:  get_address_from_token(item[9+inc].clone()),
-            env_deck: EnvDeck::from(extract_from_tuple(item[10+inc].clone())).into(),
-            creator: get_address_from_token(item[11+inc].clone()),
+            //is_finished:  get_uint_from_token(item[6+inc].clone()).as_u64(),
+            turn_start:  get_uint_from_token(item[6+inc].clone()).as_u64(),
+            rounds:  get_uint_from_token(item[7+inc].clone()).as_u64(),
+            winner:  get_address_from_token(item[8+inc].clone()),
+            env_deck: EnvDeck::from(extract_from_tuple(item[9+inc].clone())).into(),
+            creator: get_address_from_token(item[10+inc].clone()),
+            winners_card: get_uint_from_token(item[11+inc].clone()),
         }
     }
 }

@@ -4,9 +4,9 @@ use bevy::{a11y::{
     input::mouse::{MouseScrollUnit, MouseWheel},
     prelude::*
 };
-use crate::web3::{Web3Actions,MenuButton,ActionType,GameContractIxType,CardProp,GameActions,EnvCard,
+use crate::web3::{Web3Actions,MenuButton,ActionType,GameContractIxType,CardProp,EnvCard,
     EnvCardGeography,EnvCardEnemy,MatchStateEnum,
-    get_player_addresses,get_player_data_by_address,get_player1_steps,get_player2_steps};
+    get_player_addresses,get_player1_steps,get_player2_steps};
 use crate::style::NORMAL_BUTTON;
 use bevy_text_edit::{ TextEditFocus,TextEditable};
 use super::{GameStatus,CardImages,FACEDOWN_KEY,FACEUP_KEY,ENVUP_KEY,S_BULL,S_HORSE,A_GORILLA,A_DEER,B_GIRAFFE,B_RABBIT,C_CAT,C_DOG,D_FROG,D_SHEEP,
@@ -781,7 +781,7 @@ fn add_actions_area_entity(commands: &mut Commands,  width_pct: f32, height_pct:
 
 fn get_card_sprite_text(commands: &mut Commands,card_prop: &CardComponent,layer: usize,style_args: StyleArgs)->Entity{
     let text=if card_prop.face == CardFace::Up{
-        if let Some(onchain_index) = card_prop.onchain_index {
+        if let Some(_onchain_index) = card_prop.onchain_index {
             //onchain_index.to_string()
             "".to_owned()
         }else{
@@ -1760,8 +1760,8 @@ fn add_track_entity(commands: &mut Commands,card_images: &CardImages, col_count:
 
 fn update_track_entity(game: &Game,commands: &mut Commands,card_images: &CardImages,parent_entity: Entity){
     commands.entity(parent_entity).despawn_descendants();
-    let player_count=game.match_state.as_ref().map(|m| m.player_count);
-    let player_count=player_count.unwrap_or(2) as usize;
+    // let player_count=game.match_state.as_ref().map(|m| m.player_count);
+    // let player_count=player_count.unwrap_or(2) as usize;
     let steps=21;
     let mut player_steps: Vec<usize>=vec![];
     //Todo! handle for multiple players
@@ -1825,23 +1825,8 @@ pub fn add_active_card(commands: &mut Commands,  card_images: &CardImages,card_c
     active_card
 }
 
-
-
-fn update_player_active_card(){
-
-}
-// fn add_player_open_cards(open_cards:usize,)->Entity{
-//     for i in 0..open_cards{
-//         let card_sprite=  add_card_sprite(commands,"".to_owned(),,
-//         CardComponent::new(count - i,None,false,CardFace::Down),card_images);
-//     }
-// }
+  
  
-//Bevy system
-pub fn running_ui(mut _commands: Commands,
-    mut _menu_data: ResMut<MenuData>){
-
-}
 
 
 //Bevy system
@@ -1987,7 +1972,7 @@ pub fn create_player_card(commands: &mut Commands, card_images: &CardImages, car
                 // commands.entity(parent).add_child(enemy_part);
                 
             },
-            DeckCardType::EnvCard(env_card)=>{
+            DeckCardType::EnvCard(_env_card)=>{
                 let card_part = commands.spawn(create_styled_node_bundle(StyleArgs{width: Val::Percent(100.), height: Val::Percent(100.),
                     overflow: Overflow::visible(), position_type: PositionType::Absolute, top:Val::Px(0.),left: Val::Px(0.), layer, ..default()})).id();
                 let card_image_entity=commands.spawn(create_sprite_bundle(card_images,StyleArgs{image_key,
@@ -2006,16 +1991,16 @@ pub fn create_player_card(commands: &mut Commands, card_images: &CardImages, car
 
 }
 
-fn create_stat(commands: &mut Commands, card_images: &CardImages,width: f32,height: f32, left: f32,top:f32, value: u64, layer: usize,prefix: &str,)->Entity{
-    let parent = commands.spawn(create_styled_node_bundle(StyleArgs{height: Val::Px(height),
-        width:Val::Px(width),layer,position_type : PositionType::Relative,left: Val::Px(left), top: Val::Px(top), ..default()})).id();
-    // let back_image=commands.spawn(create_sprite_bundle(card_images,StyleArgs{image_key:"".to_owned(),height: Val::Px(height),
-    //  width:Val::Px(width), layer, ..default()})).id();
-    let text=commands.spawn(create_text_bundle(format!("{}{}",prefix,value).as_str(),StyleArgs{layer,..default()})).id();
-    // commands.entity(back_image).add_child(text);
-    commands.entity(parent).add_child(text);
-    parent
-}
+// fn create_stat(commands: &mut Commands, card_images: &CardImages,width: f32,height: f32, left: f32,top:f32, value: u64, layer: usize,prefix: &str,)->Entity{
+//     let parent = commands.spawn(create_styled_node_bundle(StyleArgs{height: Val::Px(height),
+//         width:Val::Px(width),layer,position_type : PositionType::Relative,left: Val::Px(left), top: Val::Px(top), ..default()})).id();
+//     // let back_image=commands.spawn(create_sprite_bundle(card_images,StyleArgs{image_key:"".to_owned(),height: Val::Px(height),
+//     //  width:Val::Px(width), layer, ..default()})).id();
+//     let text=commands.spawn(create_text_bundle(format!("{}{}",prefix,value).as_str(),StyleArgs{layer,..default()})).id();
+//     // commands.entity(back_image).add_child(text);
+//     commands.entity(parent).add_child(text);
+//     parent
+// }
 
 
 

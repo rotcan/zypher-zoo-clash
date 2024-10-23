@@ -69,7 +69,7 @@ pub fn direct_user_interaction(
         ),
         (Changed<Interaction>, With<Button>),
     >,
-    mut text_query: Query<&mut Text>,
+    //mut text_query: Query<&mut Text>,
     button_type_query: Query<&MenuButton>,
     mut next_wallet_state: ResMut<NextState<WalletState>>,
     mut next_contract_state: ResMut<NextState<ContractState>>,
@@ -795,10 +795,11 @@ pub fn wallet_account(
     //Check Transaction 
     if let ContractState::SendTransaction = contract_state.get(){
         match channel.recv_transaction(){
-            Ok(TransactionResult{hash,ix_type,to})=>{
+            Ok(TransactionResult{hash,ix_type,to,estimated_wait_time})=>{
                 let contract_type = ContractType::try_from(hex::encode(&to).as_str()).unwrap();
                 info!("hash={:?} contract_type={:?} ix_type={:?}",hash,contract_type,ix_type);
-                next_contract_state.set(ContractState::TransactionResult);
+                let tm = estimated_wait_time.map(|m| m as u32);
+                next_contract_state.set(ContractState::TransactionResult{estimated_wait_time: tm});
                 //Query contract 
                 match contract_type{
                     ContractType::CardContract=>{},
@@ -957,8 +958,8 @@ pub fn spawn_async_task(
     game: Res<Game>,
     compute_channel: Res<ComputeChannelResource>,
     mut popup_draw_event: EventWriter<PopupDrawEvent>,
-    mut commands: Commands,
-    mut menu_data: ResMut<MenuData>,
+    //mut commands: Commands,
+    //mut menu_data: ResMut<MenuData>,
     //http_channel: Res<AsyncHttpResource>,
 ){
     for event in in_game_events.read(){

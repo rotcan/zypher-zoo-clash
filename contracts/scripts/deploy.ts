@@ -12,17 +12,18 @@ import { libraries } from "../typechain-types/contracts";
 
 const errorDecoder = ErrorDecoder.create()
 //Current addresses
-const LibraryAddress="0xd15A5Fc7736198615D3d10309B1A587aA8B0d4A3";//"0x03D73a99f2151DC1b0969bdf436e6dF5f55Ec855";
+const LibraryAddress="0x9ecF20487e94B3832AD5284Ff15FaF278341aB4f";//"0x03D73a99f2151DC1b0969bdf436e6dF5f55Ec855";
 const MockRevealVerifierAddress="0x362D393756caAe6ECF434D34d5CD70E83bAD02EF";
 const MockShuffleVerifierAddress="0x1aab73Ff73c3e861955ad00c909B27c0AB5626EB";
-const GameCardAddress="0x512319949cee016552fbadcc6ccdd558a1302a7d";//"0x7A9B296Ad4c4c832e99127AAd6D58fD8bF8C46Dd";
+const GameCardAddress="0x989b8832b9091241a48ff13f87b3fc568cc4e7e4";//"0x7A9B296Ad4c4c832e99127AAd6D58fD8bF8C46Dd";
 const opBNBTestnetVRFAddress="0x2B30C31a17Fe8b5dd397EF66FaFa503760D4eaF0";
 const VRFAddress ="0xFb5344f8EBc4b79ff1f4585edD0aA7dE0502CFc6";//"0x95b5E4AB677BabcbA12D780a86E5a0373480A35f";
-const GameAddress="0x7fe3acafdb568eccbe687fd0b5d6b84bcde13aa8";
+const GameAddress="0xa12ef37772be09ac35562f189173e38cd4cc7fcd";
 const ZypherAddress="0xe09f5310419e0d0bc4e72c02e21006f499a362ce";
 //const hre = require("hardhat");
 const hre =require("hardhat");
 type Contract<T> = T & { deploymentTransaction(): ContractTransactionResponse; }; 
+const sleep=(ms:number )=>{return new Promise(resolve=>setTimeout(resolve,ms))};
 async function deployMockContracts(){
     const deck_num = 20;
     const RevealVerifier=await hre.ethers.getContractFactory('RevealVerifier');
@@ -53,11 +54,11 @@ async function deployCard(){
         IState:LibraryAddress
     }}
     );
-    // const gameCard = await Nft.deploy();
-    const gameCard=await Nft.attach(GameCardAddress);
-
+    const gameCard = await Nft.deploy();
+    //const gameCard=await Nft.attach(GameCardAddress);
+    await sleep(30_000);
     const gameAddress=(String) (await gameCard.getAddress());
-    console.log(`GameCard deployed to ${(await gameAddress.toLowerCase())}`);
+    console.log(`GameCard deployed to ${(gameAddress.toLowerCase())}`);
     const tx=await gameCard.initialize('ZooClash','ZZC');
     console.log(await tx.wait());
     
@@ -92,6 +93,7 @@ async function deployGame(){
     const game=await Game.deploy(GameCardAddress);
     const gameAddress=(String) (await game.getAddress());
     console.log(`Game deployed to ${gameAddress.toLowerCase()}`);
+    await sleep(10_000);
     const Nft= await hre.ethers.getContractFactory('RaceGameCardA',
         {libraries:{
         IState:LibraryAddress

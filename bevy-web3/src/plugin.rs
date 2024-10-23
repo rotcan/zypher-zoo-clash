@@ -46,6 +46,7 @@ enum WalletCmd{
         error: Option<String>,
         ix_type: Option<i32>,
         to: H160,
+        estimated_wait_time: Option<f32>,
     },
     CallResult{
         //result: Option<Box<dyn Detokenize + Send + 'static>>,
@@ -62,6 +63,7 @@ pub struct TransactionResult{
     pub hash: H256,
     pub ix_type: Option<i32>,
     pub to: H160,
+    pub estimated_wait_time: Option<f32>,
 }
 
 #[derive(Debug,Clone)]
@@ -139,7 +141,7 @@ impl WalletChannel {
             .detach();
     }
 
-    pub fn send(&self, from: H160, to: H160, data: Vec<u8>, ix_type: Option<i32>,value: Option<Uint>) {
+    pub fn send(&self, from: H160, to: H160, data: Vec<u8>, ix_type: Option<i32>,value: Option<Uint>, estimated_wait_time: Option<f32>) {
         let tx = self.transaction_tx.clone();
         IoTaskPool::get_or_init(TaskPool::new)
             .spawn(async move {
@@ -155,10 +157,10 @@ impl WalletChannel {
                 
                 match web3.eth().send_transaction(txr).await {
                     Ok(hash)=>{
-                        let _ = tx.send(WalletCmd::TransactionResult{hash:Some(hash),error:None,ix_type,to}).await;
+                        let _ = tx.send(WalletCmd::TransactionResult{hash:Some(hash),error:None,ix_type,to,estimated_wait_time}).await;
                     },
                     Err(err)=>{
-                        let _ = tx.send(WalletCmd::TransactionResult{hash:None,error:Some(err.to_string()),ix_type,to}).await;
+                        let _ = tx.send(WalletCmd::TransactionResult{hash:None,error:Some(err.to_string()),ix_type,to,estimated_wait_time}).await;
                     },
                 };
                 //let _ = tx.send(hash).await;
@@ -220,9 +222,9 @@ impl WalletChannel {
 
     pub fn recv_transaction(&self) -> Result<TransactionResult, Error> {
         match self.transaction_rx.try_recv(){
-            Ok(WalletCmd::TransactionResult{hash,error,ix_type,to})=>{
+            Ok(WalletCmd::TransactionResult{hash,error,ix_type,to,estimated_wait_time})=>{
                 if let Some(hash) = hash{
-                    Ok(TransactionResult{hash,ix_type,to})
+                    Ok(TransactionResult{hash,ix_type,to,estimated_wait_time})
                 }else{
                     if let Some(error) = error {
                         Err(Error::Web3Error(error.to_string()))

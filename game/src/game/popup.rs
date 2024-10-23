@@ -85,7 +85,7 @@ pub fn update_winner_card( game: &Game, commands: &mut Commands,card_images: &Ca
             if let Some(ref match_state) = game.match_state{
                 let current_player_data=&game.players_data[index];
                 if match_state.winner == current_player_data.player_state.player {
-                    if let Some((key,value)) = current_player_data.all_cards.all_card_props.last_key_value() {
+                    if let Some((_key,value)) = current_player_data.all_cards.all_card_props.last_key_value() {
                         //info!("update_winner_card value={:?}",value);
                         let key_idx=0;
                         let card_component=CardComponent{
@@ -110,7 +110,7 @@ pub fn update_winner_card( game: &Game, commands: &mut Commands,card_images: &Ca
     
 }
 
-pub fn create_winner_popup(menu_data: &mut MenuData, commands: &mut  Commands,game: &Game,card_images: &CardImages){
+pub fn create_winner_popup(menu_data: &mut MenuData, commands: &mut  Commands,game: &Game,_card_images: &CardImages){
     let layer=POPUP_LAYER;
     let parent_entity= commands.spawn(create_styled_node_bundle(StyleArgs{ width: Val::Percent(100.),
     height: Val::Percent(100.),direction: FlexDirection::Column, justify_content: JustifyContent::Center,

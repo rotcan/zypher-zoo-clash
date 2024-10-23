@@ -4,7 +4,7 @@ use bevy_web3::plugin::{WalletChannel,get_address_from_string,EthContract,tokens
 use super::{Point,VRF_MIN_BALANCE};
 use crate::error::GameError;
 use crate::web3::{GameContractIxType,init_masked_cards,shuffle_cards,public_compress,convert_string_to_u256,
-    reveal_card_with_snark,convert_vec_string_to_u256,
+    convert_vec_string_to_u256,
     verify_shuffled_cards,u256_to_string,PlayerAction};
 use zshuffle::utils::{MaskedCard};
 
@@ -75,12 +75,12 @@ pub fn proof_token_to_string(data: Token)->String{
     format!("0x{}",hex::encode(data.into_bytes().unwrap()))
 }
 fn send_txn(ix_type: &GameContractIxType, data: Vec<Token>,from_address:H160,game_address: H160,
-    value: Option<Uint>,contract: &EthContract,wallet: &Res<WalletChannel>,)->SendResult<()>{
+    value: Option<Uint>,contract: &EthContract,wallet: &Res<WalletChannel>,estimated_wait_time: Option<f32>,)->SendResult<()>{
         match contract.encode_input(ix_type.get_ix_method().as_str(),&data){
             Ok(data)=>{
                 wallet.send(from_address,game_address,data, 
                     Some(ix_type.clone() as i32), 
-                value); //
+                value,estimated_wait_time); //
                 Ok(())
             },
             Err(e)=>{
@@ -113,7 +113,7 @@ pub fn send_txn_init_player(wallet: &Res<WalletChannel>,
         vec![0u64.into_token()]
     };
 
-    send_txn(ix_type, data,from_address.clone(),game_address.clone(),value,&contract,wallet)
+    send_txn(ix_type, data,from_address.clone(),game_address.clone(),value,&contract,wallet,Some(30.))
     
 }
 
@@ -147,7 +147,7 @@ pub fn send_txn_create_match(wallet: &Res<WalletChannel>,
     player_public_key.y.into_token()]),player_count.into_token(),topup.into_token()];
 
 
-    send_txn(ix_type, data,from_address.clone(),game_address.clone(),value,&contract,wallet)
+    send_txn(ix_type, data,from_address.clone(),game_address.clone(),value,&contract,wallet,Some(30.))
 }
 
 pub fn send_txn_set_creator_deck(wallet: &Res<WalletChannel>,
@@ -159,7 +159,7 @@ pub fn send_txn_set_creator_deck(wallet: &Res<WalletChannel>,
     let data: Vec<Token>=vec![match_index.into_token(),
     Token::Array(card_indices.into_iter().map(|m| m.into_token()).collect::<Vec<Token>>())];
 
-    send_txn(ix_type, data,from_address.clone(),game_address.clone(),None,&contract,wallet)
+    send_txn(ix_type, data,from_address.clone(),game_address.clone(),None,&contract,wallet,None)
 }
 
 
@@ -174,7 +174,7 @@ pub fn send_txn_join_match(wallet: &Res<WalletChannel>,
     player_public_key.y.into_token()]),
     Token::Array(card_indices.into_iter().map(|m| m.into_token()).collect::<Vec<Token>>())];
 
-    send_txn(ix_type, data,from_address.clone(),game_address.clone(),None,&contract,wallet)
+    send_txn(ix_type, data,from_address.clone(),game_address.clone(),None,&contract,wallet,None)
 }
 
 
@@ -187,7 +187,7 @@ pub fn send_txn_joint_key(wallet: &Res<WalletChannel>,
     let data: Vec<Token>=vec![match_index.into_token(),
     Token::FixedArray(pkc.into_iter().map(|m| m.into_token()).collect::<Vec<Token>>())];
 
-    send_txn(ix_type, data,from_address.clone(),game_address.clone(),None,&contract,wallet)
+    send_txn(ix_type, data,from_address.clone(),game_address.clone(),None,&contract,wallet,None)
 }
 
 
@@ -235,7 +235,7 @@ pub fn send_txn_mask_and_shuffle_env_deck(wallet: &Res<WalletChannel>,
     masked_cards_token,shuffled_cards_token,proof_token
     ];
 
-    send_txn(ix_type, data,from_address.clone(),game_address.clone(),None,&contract,wallet)
+    send_txn(ix_type, data,from_address.clone(),game_address.clone(),None,&contract,wallet,None)
 }
 //other
 pub fn send_txn_shuffle_env_deck(wallet: &Res<WalletChannel>,
@@ -258,7 +258,7 @@ pub fn send_txn_shuffle_env_deck(wallet: &Res<WalletChannel>,
     get_proof_token(proof.clone())
     ];
 
-    send_txn(ix_type, data,from_address.clone(),game_address.clone(),None,&contract,wallet)
+    send_txn(ix_type, data,from_address.clone(),game_address.clone(),None,&contract,wallet,None)
 }
 
 //both
@@ -285,7 +285,7 @@ pub fn send_txn_shuffle_self_deck(wallet: &Res<WalletChannel>,
         get_proof_token(proof.clone())
         ];
     
-        send_txn(ix_type, data,from_address.clone(),game_address.clone(),None,&contract,wallet)
+        send_txn(ix_type, data,from_address.clone(),game_address.clone(),None,&contract,wallet,None)
 
 }
 //both
@@ -309,7 +309,7 @@ pub fn send_txn_shuffle_others_deck(wallet: &Res<WalletChannel>,
     get_proof_token(proof.clone())
     ];
 
-    send_txn(ix_type, data,from_address.clone(),game_address.clone(),None,&contract,wallet)
+    send_txn(ix_type, data,from_address.clone(),game_address.clone(),None,&contract,wallet,None)
 }
 
 //both
@@ -328,7 +328,7 @@ pub fn show_next_env_card(wallet: &Res<WalletChannel>,
     let data: Vec<Token> = vec![match_index.into_token(),Token::FixedArray(card),
         Token::FixedArray(reveal_proof)];
 
-    send_txn(ix_type, data,from_address.clone(),game_address.clone(),None,&contract,wallet)
+    send_txn(ix_type, data,from_address.clone(),game_address.clone(),None,&contract,wallet,None)
 }
 
 pub fn reveal_other_player_cards(wallet: &Res<WalletChannel>,
@@ -350,7 +350,7 @@ pub fn reveal_other_player_cards(wallet: &Res<WalletChannel>,
     let data: Vec<Token> = vec![match_index.into_token(),player_index.into_token(),
     reveal_count.into_token(), 
         Token::Array(cards),Token::Array(reveal_proofs)];
-    send_txn(ix_type, data,from_address.clone(),game_address.clone(),None,&contract,wallet)
+    send_txn(ix_type, data,from_address.clone(),game_address.clone(),None,&contract,wallet,None)
 }
 
 pub fn player_action(wallet: &Res<WalletChannel>,
@@ -367,7 +367,7 @@ pub fn player_action(wallet: &Res<WalletChannel>,
     };
     let data: Vec<Token> = vec![match_index.into_token(),Token::Uint(action_value.into())];
     info!("player action data ={:?}",data);
-    send_txn(ix_type, data,from_address.clone(),game_address.clone(),None,&contract,wallet)
+    send_txn(ix_type, data,from_address.clone(),game_address.clone(),None,&contract,wallet,None)
 }
 
 pub fn play_card(wallet: &Res<WalletChannel>,
@@ -385,5 +385,5 @@ pub fn play_card(wallet: &Res<WalletChannel>,
     let data: Vec<Token> = vec![match_index.into_token(), hand_index.into_token(),Token::FixedArray(card),
     Token::FixedArray(reveal_proof)];
     
-    send_txn(ix_type, data,from_address.clone(),game_address.clone(),None,&contract,wallet)
+    send_txn(ix_type, data,from_address.clone(),game_address.clone(),None,&contract,wallet,None)
 }

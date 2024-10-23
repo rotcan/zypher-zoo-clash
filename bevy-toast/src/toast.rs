@@ -4,7 +4,7 @@ use bevy::render::view::visibility::RenderLayers;
 
 pub fn generate_toast(commands: &mut Commands, time: &Time, event: &ToastData){
     //root bundle
-    let mut root=commands.spawn(
+    let root=commands.spawn(
         (
             NodeBundle{
                 style:Style{

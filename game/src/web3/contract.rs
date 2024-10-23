@@ -18,7 +18,7 @@ use super::{ContractState,CardContractViewActionType,GameContractViewActionType,
 use bevy_pkv::PkvStore;
 use crate::GameState;
 use std::collections::HashMap;
-use bevy_toast::ToastEvent;
+use bevy_toast::{ToastEvent,ToastData};
 //use zshuffle::utils::MaskedCard;
 
 #[derive(Debug)]
@@ -232,7 +232,7 @@ pub fn process_contract_response(res: &CallResponse,
                                     // };
                                     // if processed_cards == 0 {
                                         //Set all cards
-                                        info!("process_contract_response data={:?}",data[0].clone());
+                                        // info!("process_contract_response data={:?}",data[0].clone());
                                         //let account_bytes=game.account_bytes.clone().unwrap();
                                         if let Some(index) = get_player_index_by_address(&game, &account_bytes) {
                                             game.players_data[index].all_cards.parse_all_cards(
@@ -366,6 +366,7 @@ pub fn process_contract_response(res: &CallResponse,
                                     }
                                 }
                                 
+                                check_and_update_state_hash(state_hash,toast_event_writer,game);
                                 //Todo! remove this layer
                                 // if game.players_data[index].player_state.original_cards.len() == 0 {
                                 //     game.selected_cards=game.players_data[index].all_cards
@@ -430,7 +431,7 @@ pub fn process_contract_response(res: &CallResponse,
                                 
                                 
                                 if game.match_state.is_none(){
-                                    if *&match_state.player_count>0 && &match_state.state == &MatchStateEnum::None && *&match_state.is_finished<1{
+                                    if *&match_state.player_count>0 && &match_state.state == &MatchStateEnum::None {
                                         //Join Match
                                         if &match_state.creator != &address_bytes {
                                             delegate_txn_event.send(DelegateTxnSendEvent::JoinMatch);
@@ -547,12 +548,13 @@ state_hash: &mut GameHash,
 toast_event_writer: &mut EventWriter<ToastEvent>,
 // timer_query: &mut Query<(Entity, &mut ContractRequestTimer)>,
 ){
-    state_hash.current_hash= calculate_hash(&game);
-    if state_hash.current_hash!=state_hash.old_hash{
-        //Hide toast
-        toast_event_writer.send(ToastEvent::HideToast);
-    }
-    state_hash.old_hash= state_hash.current_hash;
+    // state_hash.current_hash= calculate_hash(&game);
+    // if state_hash.current_hash!=state_hash.old_hash{
+    //     //Hide toast
+    //     toast_event_writer.send(ToastEvent::HideToast);
+    // }
+    // state_hash.old_hash= state_hash.current_hash;
+    check_and_update_state_hash(state_hash,toast_event_writer,&game);
 
     if let Some(ref address_bytes)=game.account_bytes{
 
@@ -941,9 +943,12 @@ fn update_game_with_player_data(game: &mut Game,player_state: &PlayerState){
 pub fn handle_contract_state_change(contract_state: Res<State<ContractState>>,
     mut popup_draw_event: EventWriter<PopupDrawEvent>,
     mut menu_data: ResMut<MenuData>,
-    mut commands: Commands){
+    mut commands: Commands,
+    mut toast_event_writer :EventWriter<ToastEvent>,){
         match contract_state.get(){
+            ContractState::None=>{},
             ContractState::SendTransaction=>{
+                info!("ContractState::SendTransaction");
                 //show popup
                 popup_draw_event.send(
                     PopupDrawEvent::ShowPopup(PopupData {
@@ -954,10 +959,18 @@ pub fn handle_contract_state_change(contract_state: Res<State<ContractState>>,
                     })
                 );
             },
-            ContractState::Waiting |
-            ContractState::TransactionResult=>{
+            ContractState::Waiting =>{
                 //hide popup
                 hide_popup(&mut menu_data, &mut commands);
+                //Show toast to wait for state change
+                toast_event_writer.send(ToastEvent::ShowToast{data: ToastData{content:"Loading ...".to_owned(), ..default()}});
+            },
+            ContractState::TransactionResult{estimated_wait_time}=>{
+                //hide popup
+                hide_popup(&mut menu_data, &mut commands);
+                //Show toast to wait for state change
+                let tm= estimated_wait_time.map(|m| m as f32).unwrap_or(15.);
+                toast_event_writer.send(ToastEvent::ShowToast{data: ToastData{content:"Loading ...".to_owned(), timeout_secs: tm, ..default()}});
             },
         }
 }
@@ -1115,11 +1128,11 @@ pub fn get_player2_steps<'a>(game: &'a Game)->Option<usize>{
 }
 
 pub fn request_contract_data_if_true(
-    game: Res<Game>,
-    q: Query<(Entity, &ContractRequestTimer)>,
+//    game: Res<Game>,
+    query: Query<(Entity, &ContractRequestTimer)>,
 )->bool{
      //game.match_index > U256::zero() && 
-     q.is_empty() == false
+     query.is_empty() == false
 }
 
 //Bevy system to run every x seconds
@@ -1128,7 +1141,6 @@ pub fn request_contract_data(
     game: Res<Game>,
     mut q: Query<(Entity, &mut ContractRequestTimer)>,
     time: Res<Time>,
-    game_state: Res<State<GameState>>,
 ){
     let match_index=game.match_index;
     if  q.is_empty() == false{
@@ -1138,7 +1150,6 @@ pub fn request_contract_data(
         //info!("val.timer={:?}",val.timer);
         if val.timer.finished() 
         {
-            let gs=game_state.get();
             //  info!("timer match_state={:?}",game.match_state);
             if game.match_finished == false
             {
@@ -1212,7 +1223,7 @@ pub fn request_contract_data(
             }else
             {
                 game.account_bytes.as_ref().map(|account| {
-                    if let Some(index) = get_player_index_by_address(&game, account) {
+                    if let Some(_index) = get_player_index_by_address(&game, account) {
                         let data = game.card_contract.encode_input(CardContractViewActionType::GetAllCards.get_view_method().as_str(),
                              &[ get_address_from_string(&hex::encode(account)).unwrap().into_token()]).unwrap();
 
@@ -1318,4 +1329,13 @@ mut ui_update_event: EventReader<UiUpdateEvent>,game: Res<Game>,card_images: Res
 fn get_address_from_bytes(data: &Address)->String{
     //info!("get_address_from_bytes data={:?}",hex::encode(&data).to_owned());
     hex::encode(&data).trim_start_matches('0').to_owned()
+}
+
+fn check_and_update_state_hash(state_hash: &mut GameHash, toast_event_writer:&mut EventWriter<ToastEvent>, game: &Game ){
+    state_hash.current_hash= calculate_hash(&game);
+    if state_hash.current_hash!=state_hash.old_hash{
+        //Hide toast
+        toast_event_writer.send(ToastEvent::HideToast);
+    }
+    state_hash.old_hash= state_hash.current_hash;
 }

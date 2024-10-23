@@ -685,7 +685,7 @@ describe('init',()=>{
         for(var i=0;i<10;i++){
             await playTurn({keys,matchIndex,players,revealEnv:i%3});
             const matchData=await GameMock.matches(matchIndex);
-            if(matchData.isFinished===1n){
+            if(matchData.state==8n){
                 break;
             }
         }

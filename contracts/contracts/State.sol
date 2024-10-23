@@ -42,12 +42,13 @@ library IState{
         uint8 playerTurn;
         uint8 playerTurnType;
         uint8 revealEnv;
-        uint8 isFinished;
+        // uint8 isFinished;
         uint8 turnStart;
         uint8 rounds;
         address winner;
         EnvDeck envDeck;
         address creator;
+        uint256 winnersCard;
         // DiscardDeck discardDeck;
         // uint8 orderReverse;
     }
