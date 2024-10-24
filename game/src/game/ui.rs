@@ -922,7 +922,7 @@ style_args: StyleArgs,
     parent
 }
 
-pub fn add_editable_button(commands: &mut Commands,&initial_value: String, width: f32, height: f32, game_status: GameStatus,action_type: ActionType, )->Entity{
+pub fn add_editable_button(commands: &mut Commands,initial_value: &str, width: f32, height: f32, game_status: GameStatus,action_type: ActionType, )->Entity{
      
     let layer= MAIN_LAYER;
     let text_entity = commands.spawn(create_node_bundle(width,height,FlexDirection::Row,JustifyContent::Center,

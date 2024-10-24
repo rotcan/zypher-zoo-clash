@@ -9,7 +9,8 @@ use crate::game::{Game,GameHash,GAME_CARD_CONTRACT_ADDRESS,GAME_CONTRACT_ADDRESS
     CardComponent,CardImages,PopupDrawEvent,PopupData,hide_popup,CardFace,CardComponentType,RequestExtraData,
     process_ui_query,UiElementComponent,RevealData,DeckCardType,Player,UiUpdateEvent,calculate_hash,
     UiElement,BeforeGameElements,MenuData,InGameElements,};
-use super::{ContractState,CardContractViewActionType,GameContractViewActionType,PlayerState,
+use super::{ContractState,CardContractViewActionType,GameContractViewActionType,PlayerState,CallContractEvent,
+    InGameContractEvent,DelegateTxnSendEvent,CallContractParam,
     MIN_CARD_COUNT,Web3ViewEvents,MatchState,PopupResult,CardProp,EnvCard,vec_to_reveals,
     MatchStateEnum,parse_token_to_vec_vec_uint,extract_vec,
     parse_token_to_vec_uint,generate_key, vec_to_masked_card,
@@ -353,7 +354,7 @@ pub fn process_contract_response(res: &CallResponse,
                         },
                     }
                 },
-                GameContractViewActionType::GetMatch{delegate_action}=>{
+                GameContractViewActionType::GetMatch=>{
                     //info!("Get match");
                     match &decoded_result{
                         Token::Tuple(val)=>{
@@ -380,9 +381,7 @@ pub fn process_contract_response(res: &CallResponse,
                                     if *&match_state.player_count>0 && &match_state.state == &MatchStateEnum::None {
                                         //Join Match
                                         if &match_state.creator != &address_bytes {
-                                            if let Some(delegate_action) = delegate_action{
-                                                delegate_txn_event.send(delegate_action.clone());
-                                            }
+                                            delegate_txn_event.send(DelegateTxnSendEvent::JoinMatch);
                                         }
                                     }
                                 }

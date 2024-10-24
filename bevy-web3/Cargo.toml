@@ -8,7 +8,6 @@ bevy = {workspace= true}
 async-channel = {workspace=true}
 derive_more = "0.99.18"
 serde_json = {workspace= true}
-#web3 = { path="../rust-web3", default-features = false, features = ["wasm","eip-1193","http"] }
 web3 = { version = "0.19", default-features = false, features = ["wasm", "eip-1193"] }
 hex = "0.4.3"
 async-std = "1.12.0"

@@ -96,7 +96,9 @@ pub fn direct_user_interaction(
                             //text.sections[0].value = "Press".to_string();
                             // *color = PRESSED_BUTTON.into();
                             // border_color.0 = Color::srgb(1.0,0.0,0.0);
-                
+                            *color = NORMAL_BUTTON.into();
+                            border_color.0 = Color::BLACK;
+                            
                             match button_type.target
                             {
                                 ActionType::Web3Actions(ref web3_action)=>

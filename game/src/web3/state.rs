@@ -1,11 +1,10 @@
 use bevy::{prelude::*};
-use bevy_web3::{types::{Address}};
+use bevy_web3::{types::{Address,U256}, plugin::EthContract};
 use bevy_web3::plugin::tokens::{Uint,Token};
 use crate::error::GameError;
-use crate::game::{GAME_CARD_CONTRACT_ADDRESS,GAME_CONTRACT_ADDRESS,E1,E2,E3,G1,G2,G3,G4,G5,G6,};
+use crate::game::{GAME_CARD_CONTRACT_ADDRESS,GAME_CONTRACT_ADDRESS,E1,E2,E3,G1,G2,G3,G4,G5,G6,RequestExtraData,RevealData};
 use serde::{Serialize,Deserialize};
-use bevy_web3::types::U256;
-use std::collections::{BTreeMap};
+use std::collections::{BTreeMap,HashMap};
 use std::time::Duration;
 use std::hash::{Hash,Hasher};
 
@@ -232,7 +231,7 @@ impl CardContractViewActionType{
 #[repr(i32)]
 pub enum GameContractViewActionType{
     GetCurrentMatch,
-    GetMatch{delegate_action: Option<DelegateTxnSendEvent>},
+    GetMatch,
     GetPlayerData,
     GetPkc,
     GetPlayerDataByIndex,
