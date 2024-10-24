@@ -17,59 +17,11 @@ use super::{ContractState,CardContractViewActionType,GameContractViewActionType,
     ContractRequestTimer,PlayerAction,unmask_card};
 use bevy_pkv::PkvStore;
 use crate::GameState;
+use crate::platform;
 use std::collections::HashMap;
 use bevy_toast::{ToastEvent,ToastData};
 //use zshuffle::utils::MaskedCard;
 
-#[derive(Debug)]
-pub enum CallContractParam{
-    // Zero(Token),
-    // Single(Token),
-    // Multiple(Vec<u8>)
-    Data(Vec<u8>)
-}
-
-#[derive(Event,Debug)]
-pub struct CallContractEvent {
-    pub contract:EthContract,
-    pub method: Web3ViewEvents,
-    pub params: CallContractParam,
-}
-
-#[derive(Event,Debug)]
-pub enum InGameContractEvent{
-    JoinMatch,
-    UpdateMatchIndex,
-    UpdatePKC,
-    UpdatePKCPopup,
-    MaskAndShuffleEnvDeckPopup,
-    MaskAndShuffleEnvDeck,
-    ShuffleEnvDeckPopup,
-    ShuffleYourDeckPopup,
-    ShuffleOthersDeckPopup,
-    ShuffleEnvDeck,
-    ShuffleYourDeck,
-    ShuffleOthersDeck,
-    RevealMaskedCard{masked_card: HashMap<usize,Vec<String>>,extra_data: RequestExtraData,}
-}
-
-#[derive(Event,Debug)]
-pub enum DelegateTxnSendEvent{
-    LoadMatch,
-    JoinMatch,
-    SetJointKey,
-    SetJointKeyPopup,
-    MaskAndShuffleEnvDeckPopup,
-    MaskAndShuffleEnvDeck,
-    ShuffleEnvDeckPopup,
-    ShuffleYourDeckPopup,
-    ShuffleOthersDeckPopup,
-    ShuffleEnvDeck,
-    ShuffleYourDeck,
-    ShuffleOthersDeck,
-    RevealCard{ request_extra_data: RequestExtraData,
-        reveal_map: HashMap<usize,RevealData>}
-}
 
 
 // #[derive(Event)]
@@ -274,11 +226,13 @@ pub fn process_contract_response(res: &CallResponse,
 
                                             if let Some(ref match_state) = game.match_state{
                                                 if match_state.player_count == 0 {
-                                                    //update_status_area(&mut ui_query,commands,GameStatus::CreateNewMatch);
                                                     next_game_status.set(GameStatus::CreateNewMatch);
                                                 }
                                             }else{
-                                                //update_status_area(&mut ui_query,commands,GameStatus::CreateNewMatch);
+                                                //No match then join if url has match_id
+                                                if game.match_index == Uint::zero(){
+                                                    join_match_from_url(game, delegate_txn_event, toast_event_writer);
+                                                }
                                                 next_game_status.set(GameStatus::CreateNewMatch);
                                             };
                                         }
@@ -286,19 +240,11 @@ pub fn process_contract_response(res: &CallResponse,
                                     
                                     
                                 });
-                                //Get All Cards
-                                //game.account.as_ref().map(|account| {
-                                // if let Some(ref account) = game.account
-                                // {
-                                    
-                                // };
-                                
-                                
                                  
                                 
                             }else{
                                 
-                                warn!("No cards minted for {} till now",address.as_str());
+                                //warn!("No cards minted for {} till now",address.as_str());
                             }
                             //let first_val= val.first().unwrap();
                             //info!("GetAllCards first val={:?} for {:?}",first_val,game.account);
@@ -407,7 +353,7 @@ pub fn process_contract_response(res: &CallResponse,
                         },
                     }
                 },
-                GameContractViewActionType::GetMatch=>{
+                GameContractViewActionType::GetMatch{delegate_action}=>{
                     //info!("Get match");
                     match &decoded_result{
                         Token::Tuple(val)=>{
@@ -434,7 +380,9 @@ pub fn process_contract_response(res: &CallResponse,
                                     if *&match_state.player_count>0 && &match_state.state == &MatchStateEnum::None {
                                         //Join Match
                                         if &match_state.creator != &address_bytes {
-                                            delegate_txn_event.send(DelegateTxnSendEvent::JoinMatch);
+                                            if let Some(delegate_action) = delegate_action{
+                                                delegate_txn_event.send(delegate_action.clone());
+                                            }
                                         }
                                     }
                                 }
@@ -483,7 +431,7 @@ pub fn process_contract_response(res: &CallResponse,
                                     }
 
                                     process_state_update(game,pkv,match_events_writer,next_game_state,next_game_status,&contract_player_state.player,
-                                    ui_update_event,popup_draw_event,state_hash,toast_event_writer);
+                                    ui_update_event,popup_draw_event,state_hash,toast_event_writer,delegate_txn_event);
                                     
                                       
                                 },
@@ -546,7 +494,8 @@ ui_update_event: &mut EventWriter<UiUpdateEvent>,
 popup_draw_event: &mut EventWriter<PopupDrawEvent>,
 state_hash: &mut GameHash,
 toast_event_writer: &mut EventWriter<ToastEvent>,
-// timer_query: &mut Query<(Entity, &mut ContractRequestTimer)>,
+delegate_txn_event_writer: &mut EventWriter<DelegateTxnSendEvent>,
+
 ){
     // state_hash.current_hash= calculate_hash(&game);
     // if state_hash.current_hash!=state_hash.old_hash{
@@ -566,7 +515,7 @@ toast_event_writer: &mut EventWriter<ToastEvent>,
         //Update other players data on screen
         if let Some(ref match_state)=game.match_state{
             //All players
-            info!("match_state={:?}",match_state.state);
+            //info!("match_state={:?}",match_state.state);
             if let Some(index)=get_player_index_by_address(&game, updated_player_address) {
                 let player_data = &game.players_data[index];
                 if game.screen_data.contains_key(&updated_player_address) == false {
@@ -639,14 +588,7 @@ toast_event_writer: &mut EventWriter<ToastEvent>,
                                 }
                                 
                             }
-                            // if player_data.player_state.player_board > Uint::zero() {
-                            //     if player_screen_data.current_hands.contains_key(&0) == false{
-                            //         if let Some(card_prop)=player_data.all_cards.all_card_props.get(&player_data.player_state.player_board) 
-                            //         {
-                            //             player_screen_data.current_hands.insert(0,card_prop.clone());
-                            //         };
-                            //     }
-                            // }
+                            
                         }
 
                         //delete extra cards
@@ -712,7 +654,12 @@ toast_event_writer: &mut EventWriter<ToastEvent>,
                     
                     //update_status_area(&mut ui_query,commands,GameStatus::SetCreatorDeck);
                     if current_player_data.player_state.player != match_state.creator{
-                        next_game_status.set(GameStatus::CreateNewMatch);
+                        //Check url if it contains match id then join the match
+                        if match_state.player_count>0 && game.match_index == Uint::zero(){
+                            join_match_from_url(game, delegate_txn_event_writer, toast_event_writer);
+                        }else{
+                            next_game_status.set(GameStatus::CreateNewMatch);
+                        }
                     }else{
                         next_game_status.set(GameStatus::SetCreatorDeck);
                     }
@@ -1338,4 +1285,31 @@ fn check_and_update_state_hash(state_hash: &mut GameHash, toast_event_writer:&mu
         toast_event_writer.send(ToastEvent::HideToast);
     }
     state_hash.old_hash= state_hash.current_hash;
+}
+
+fn join_match_from_url(game:&mut Game,_delegate_txn_event_writer: &mut EventWriter<DelegateTxnSendEvent>,
+    _toast_event_writer: &mut EventWriter<ToastEvent>){
+    //info!("show join match");
+    let url = platform::parse_url();
+    match reqwest::Url::parse(&url){
+        Ok(parsed_url)=>{
+            let hash_query: HashMap<_, _> = parsed_url.query_pairs().into_owned().collect();
+            if let Some(match_id) = hash_query.get("match_id") {
+                match U256::from_str_radix(match_id,10){
+                    Ok(match_id) =>{
+                        game.match_index= match_id;
+                        // delegate_txn_event_writer.send(DelegateTxnSendEvent::LoadMatch);    
+                        // toast_event_writer.send(ToastEvent::ShowToast{data: ToastData{content:format!("Joining Match {:?}",match_id), timeout_secs : 3.0 , ..default()}});
+                    },
+                    Err(_)=>{
+
+                    },
+                }
+                
+            }
+        },
+        Err(_)=>{
+            
+        }
+    }
 }

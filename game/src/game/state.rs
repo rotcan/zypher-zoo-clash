@@ -170,6 +170,7 @@ pub enum GameStatus{
     PlayerActionEnv, //Boths
     PlayerActionCard, //Boths
     Finished, //Both
+    ShareMatchUrl, //Creator
 }
 
 impl GameStatus{
@@ -207,6 +208,7 @@ impl GameStatus{
             GameStatus::PlayerActionEnv => "Reveal Env Action".to_owned(),
             GameStatus::PlayerActionCard => "Play Card Action".to_owned(),
             GameStatus::Finished=>"Game Finished!".to_owned(),
+            GameStatus::ShareMatchUrl=>"Copy Match Url".to_owned(),
         }
     }
 
@@ -244,6 +246,7 @@ impl GameStatus{
             29 => Self::PlayerActionEnv,
             30 => Self::PlayerActionCard,
             31 => Self::Finished,
+            32=>Self::ShareMatchUrl,
             _=>{panic!("GameStatus not mapping to i32")}
         }
     }

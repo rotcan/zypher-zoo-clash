@@ -4,7 +4,7 @@ use bevy::{a11y::{
     input::mouse::{MouseScrollUnit, MouseWheel},
     prelude::*
 };
-use crate::web3::{Web3Actions,MenuButton,ActionType,GameContractIxType,CardProp,EnvCard,
+use crate::web3::{Web3Actions,MenuButton,ActionType,GameContractIxType,GameActions,CardProp,EnvCard,
     EnvCardGeography,EnvCardEnemy,MatchStateEnum,
     get_player_addresses,get_player1_steps,get_player2_steps};
 use crate::style::NORMAL_BUTTON;
@@ -922,7 +922,7 @@ style_args: StyleArgs,
     parent
 }
 
-pub fn add_editable_button(commands: &mut Commands,width: f32, height: f32, game_status: GameStatus,action_type: ActionType, )->Entity{
+pub fn add_editable_button(commands: &mut Commands,&initial_value: String, width: f32, height: f32, game_status: GameStatus,action_type: ActionType, )->Entity{
      
     let layer= MAIN_LAYER;
     let text_entity = commands.spawn(create_node_bundle(width,height,FlexDirection::Row,JustifyContent::Center,
@@ -944,7 +944,7 @@ pub fn add_editable_button(commands: &mut Commands,width: f32, height: f32, game
                     TextEditFocus,
                     Interaction::None,       // Mark entity is interactable
                     TextBundle::from_section(
-                        "0",
+                        initial_value,
                         TextStyle {
                             font_size: 30.,
                             ..default()
@@ -1114,7 +1114,7 @@ game: &Game,
                             };
                             if to_add == true
                             {
-                                add_status_button(commands, entity,  &new_status);
+                                add_status_button(commands, entity,  &new_status,&game);
                                 element.update_status(Some(new_status.clone()));
                             }
                         };
@@ -1149,7 +1149,7 @@ game: &Game,
                             };
                             if to_add == true
                             {
-                                add_status_button(commands, entity,  &new_status);
+                                add_status_button(commands, entity,  &new_status,&game);
                                 element.update_status(Some(new_status.clone()));
                             }
                         };
@@ -1196,7 +1196,7 @@ game: &Game,
     }
 }
 
-fn add_status_button(commands: &mut Commands,entity: Entity, new_status: &GameStatus){
+fn add_status_button(commands: &mut Commands,entity: Entity, new_status: &GameStatus,game: &Game,){
     commands.entity(entity).despawn_descendants();
     let layer= MAIN_LAYER;
     match new_status{
@@ -1246,14 +1246,30 @@ fn add_status_button(commands: &mut Commands,entity: Entity, new_status: &GameSt
             StyleArgs{width:Val::Percent(80.),height: Val::Percent(40.),layer,..StyleArgs::button_style()}  
             );
             commands.entity(entity).add_child(button);
-            let join_button=add_editable_button(commands,100.,50.,GameStatus::JoinMatchPreSelect,
+            let join_button=add_editable_button(commands,format!("{}",game.match_index).as_str(),100.,50.,GameStatus::JoinMatchPreSelect,
                 ActionType::Web3Actions(Web3Actions::GameContractAction(GameContractIxType::JoinMatchPreSelect)));
             commands.entity(entity).add_child(join_button);
         
             //element.update_status(Some(new_status.clone()));
             
         },
-        GameStatus::WaitingForPlayers |
+        GameStatus::WaitingForPlayers=>{
+            let area_entity=add_actions_area_entity(commands, 100.0,100.,FlexDirection::Column, JustifyContent::Center,
+                Some(AlignItems::FlexStart), Overflow::visible(),None,None,None, MAIN_LAYER);
+            
+            let text=add_text(commands,new_status.value().as_str(),StyleArgs{width: Val::Percent(100.),height: Val::Percent(100.),
+                direction: FlexDirection::Row, justify_content: JustifyContent::Center, align_items: AlignItems::Center, overflow: Overflow::visible(),
+            layer,..default()});
+            commands.entity(area_entity).add_child(text);
+
+            let button= add_button(commands,GameStatus::ShareMatchUrl,
+                ActionType::GameActions(GameActions::CopyMatchUrl),
+                StyleArgs{width:Val::Percent(80.),height: Val::Percent(40.),layer,..StyleArgs::button_style()} 
+            );
+            
+            commands.entity(area_entity).add_child(button);
+            commands.entity(entity).add_child(area_entity);
+        },
         GameStatus::WaitingForPlayerToShuffleEnvDeck |
         GameStatus::WaitingForPlayerToShuffleCards |
         GameStatus::WaitingForJointKey |
@@ -1524,7 +1540,7 @@ pub fn start_ui(mut commands: Commands,
         menu_data.main_entity=Some(main_entity);
 
         //Update actions area
-        add_status_button(&mut commands, action_entity, &game_status.get());
+        add_status_button(&mut commands, action_entity, &game_status.get(),&game);
         //Update env card
         update_env_card(&game,&mut commands, &card_images,card_env_block);
         //Update player cards

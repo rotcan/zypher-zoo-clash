@@ -880,11 +880,6 @@
       },
       {
         "internalType": "uint8",
-        "name": "isFinished",
-        "type": "uint8"
-      },
-      {
-        "internalType": "uint8",
         "name": "turnStart",
         "type": "uint8"
       },
@@ -939,6 +934,11 @@
         "internalType": "address",
         "name": "creator",
         "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "winnersCard",
+        "type": "uint256"
       }
     ],
     "stateMutability": "view",

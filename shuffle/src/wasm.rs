@@ -6,7 +6,7 @@ use std::sync::Mutex;
 use once_cell::sync::Lazy;
 use crate::gen_params::{gen_shuffle_prover_params,params::refresh_prover_params_public_key};
 use crate::error::ShuffleError;
-use crate::utils::{default_prng,generate_key_preset,point_to_hex,
+use crate::utils::{default_prng,point_to_hex,
     point_to_uncompress,hex_to_point,masked_card_serialize,masked_card_deserialize,hex_to_scalar,
     index_to_point,point_to_index,shuffle_proof_to_hex,shuffle_proof_from_hex,scalar_to_hex,uncompress_to_point,
     MaskedCardWithProof,MaskedCard,ShuffledCardsWithProof,ShuffleResult,RevealedCardWithSnarkProof,RevealedCardWithProof,};
@@ -23,7 +23,6 @@ use crate::{
     Groth16,ProvingKey,gen_params::load_groth16_pk,SNARK
 };
 use ark_ec::AffineRepr;
-use log::info;
 static PARAMS: Lazy<Mutex<HashMap<usize, ProverParams>>> = Lazy::new(|| {
     let m = HashMap::new();
     Mutex::new(m)
@@ -282,6 +281,7 @@ pub fn unmask_card(sk: String, card: MaskedCard, reveals:  Vec<(String, String)>
 #[cfg(test)]
 pub mod tests{
     use chrono::Utc;
+    use crate::utils::generate_key_preset;
     use super::*;
     const CARD_NUM: i32 = 20;
 

@@ -28,11 +28,9 @@ pub enum ContractState{
     None,
     Waiting,
     SendTransaction,
-    //TransactionPending,
+    
     TransactionResult{estimated_wait_time: Option<u32>},
-    // SendViewCall,
-    //ViewCallPending,
-    // ViewCallResult
+    
 }
 
 impl Hash for ContractState{
@@ -49,24 +47,55 @@ impl Hash for ContractState{
     }
 }
 
-// impl PartialEq for ContractState{
-//     fn eq(&self, other: &Self) -> bool {
-//         if let Self::TransactionResult{..} = &self {
-//             if let Self::TransactionResult{..} = &other {
-//                 return true;
-//             }else{
-//                 return false;
-//             }
-//         }else{
-//             if let Self::TransactionResult{..} = &other {
-//                 return false;
-//             }else{
-//                 return &self == &other;
-//             }
-//         };
-//     }
-// }
-// impl Eq for ContractState{}
+
+#[derive(Debug)]
+pub enum CallContractParam{
+    
+    Data(Vec<u8>)
+}
+
+#[derive(Event,Debug)]
+pub struct CallContractEvent {
+    pub contract:EthContract,
+    pub method: Web3ViewEvents,
+    pub params: CallContractParam,
+}
+
+#[derive(Event,Debug)]
+pub enum InGameContractEvent{
+    JoinMatch,
+    UpdateMatchIndex,
+    UpdatePKC,
+    UpdatePKCPopup,
+    MaskAndShuffleEnvDeckPopup,
+    MaskAndShuffleEnvDeck,
+    ShuffleEnvDeckPopup,
+    ShuffleYourDeckPopup,
+    ShuffleOthersDeckPopup,
+    ShuffleEnvDeck,
+    ShuffleYourDeck,
+    ShuffleOthersDeck,
+    RevealMaskedCard{masked_card: HashMap<usize,Vec<String>>,extra_data: RequestExtraData,}
+}
+
+#[derive(Event,Debug)]
+pub enum DelegateTxnSendEvent{
+    LoadMatch,
+    JoinMatch,
+    SetJointKey,
+    SetJointKeyPopup,
+    MaskAndShuffleEnvDeckPopup,
+    MaskAndShuffleEnvDeck,
+    ShuffleEnvDeckPopup,
+    ShuffleYourDeckPopup,
+    ShuffleOthersDeckPopup,
+    ShuffleEnvDeck,
+    ShuffleYourDeck,
+    ShuffleOthersDeck,
+    RevealCard{ request_extra_data: RequestExtraData,
+        reveal_map: HashMap<usize,RevealData>}
+}
+
 
 #[derive(Clone,Eq,PartialEq,Debug,Hash)]
 #[repr(i32)]
@@ -203,7 +232,7 @@ impl CardContractViewActionType{
 #[repr(i32)]
 pub enum GameContractViewActionType{
     GetCurrentMatch,
-    GetMatch,
+    GetMatch{delegate_action: Option<DelegateTxnSendEvent>},
     GetPlayerData,
     GetPkc,
     GetPlayerDataByIndex,
@@ -264,6 +293,7 @@ pub enum Web3Actions{
 pub enum GameActions{
     PopupActions(PopupResult),
     ShowOriginalCards(usize),
+    CopyMatchUrl,
 }
 
 #[derive(Debug,PartialEq)]
