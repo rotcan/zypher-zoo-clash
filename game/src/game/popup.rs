@@ -195,7 +195,7 @@ pub fn create_winner_popup(menu_data: &mut MenuData, commands: &mut  Commands,ga
     StyleArgs{width:Val::Percent(50.),height: Val::Percent(25.),layer,..StyleArgs::button_style()}  
     );
     commands.entity(layout_bottom_entity).add_child(create_button);
-    let join_button=add_editable_button(commands,80.,50. ,GameStatus::JoinMatchPreSelect,
+    let join_button=add_editable_button(commands,"0",80.,50. ,GameStatus::JoinMatchPreSelect,
         ActionType::Web3Actions(Web3Actions::GameContractAction(GameContractIxType::JoinMatchPreSelect)));
     commands.entity(layout_bottom_entity).add_child(join_button);
 

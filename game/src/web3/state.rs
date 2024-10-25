@@ -1,11 +1,10 @@
 use bevy::{prelude::*};
-use bevy_web3::{types::{Address}};
+use bevy_web3::{types::{Address,U256}, plugin::EthContract};
 use bevy_web3::plugin::tokens::{Uint,Token};
 use crate::error::GameError;
-use crate::game::{GAME_CARD_CONTRACT_ADDRESS,GAME_CONTRACT_ADDRESS,E1,E2,E3,G1,G2,G3,G4,G5,G6,};
+use crate::game::{GAME_CARD_CONTRACT_ADDRESS,GAME_CONTRACT_ADDRESS,E1,E2,E3,G1,G2,G3,G4,G5,G6,RequestExtraData,RevealData};
 use serde::{Serialize,Deserialize};
-use bevy_web3::types::U256;
-use std::collections::{BTreeMap};
+use std::collections::{BTreeMap,HashMap};
 use std::time::Duration;
 use std::hash::{Hash,Hasher};
 
@@ -28,11 +27,9 @@ pub enum ContractState{
     None,
     Waiting,
     SendTransaction,
-    //TransactionPending,
+    
     TransactionResult{estimated_wait_time: Option<u32>},
-    // SendViewCall,
-    //ViewCallPending,
-    // ViewCallResult
+    
 }
 
 impl Hash for ContractState{
@@ -49,24 +46,55 @@ impl Hash for ContractState{
     }
 }
 
-// impl PartialEq for ContractState{
-//     fn eq(&self, other: &Self) -> bool {
-//         if let Self::TransactionResult{..} = &self {
-//             if let Self::TransactionResult{..} = &other {
-//                 return true;
-//             }else{
-//                 return false;
-//             }
-//         }else{
-//             if let Self::TransactionResult{..} = &other {
-//                 return false;
-//             }else{
-//                 return &self == &other;
-//             }
-//         };
-//     }
-// }
-// impl Eq for ContractState{}
+
+#[derive(Debug)]
+pub enum CallContractParam{
+    
+    Data(Vec<u8>)
+}
+
+#[derive(Event,Debug)]
+pub struct CallContractEvent {
+    pub contract:EthContract,
+    pub method: Web3ViewEvents,
+    pub params: CallContractParam,
+}
+
+#[derive(Event,Debug)]
+pub enum InGameContractEvent{
+    JoinMatch,
+    UpdateMatchIndex,
+    UpdatePKC,
+    UpdatePKCPopup,
+    MaskAndShuffleEnvDeckPopup,
+    MaskAndShuffleEnvDeck,
+    ShuffleEnvDeckPopup,
+    ShuffleYourDeckPopup,
+    ShuffleOthersDeckPopup,
+    ShuffleEnvDeck,
+    ShuffleYourDeck,
+    ShuffleOthersDeck,
+    RevealMaskedCard{masked_card: HashMap<usize,Vec<String>>,extra_data: RequestExtraData,}
+}
+
+#[derive(Event,Debug)]
+pub enum DelegateTxnSendEvent{
+    LoadMatch,
+    JoinMatch,
+    SetJointKey,
+    SetJointKeyPopup,
+    MaskAndShuffleEnvDeckPopup,
+    MaskAndShuffleEnvDeck,
+    ShuffleEnvDeckPopup,
+    ShuffleYourDeckPopup,
+    ShuffleOthersDeckPopup,
+    ShuffleEnvDeck,
+    ShuffleYourDeck,
+    ShuffleOthersDeck,
+    RevealCard{ request_extra_data: RequestExtraData,
+        reveal_map: HashMap<usize,RevealData>}
+}
+
 
 #[derive(Clone,Eq,PartialEq,Debug,Hash)]
 #[repr(i32)]
@@ -264,6 +292,7 @@ pub enum Web3Actions{
 pub enum GameActions{
     PopupActions(PopupResult),
     ShowOriginalCards(usize),
+    CopyMatchUrl,
 }
 
 #[derive(Debug,PartialEq)]

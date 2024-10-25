@@ -72,8 +72,7 @@ pub fn start(){
         .insert_resource(GameHash::init())
         .insert_resource(init_compute_resource())
         .insert_resource(init_http_resource())
-        .add_systems(Startup,(setup_2d_cameras,parse_url))
-        .add_systems(Startup,load_sprites)
+        .add_systems(Startup,(setup_2d_cameras,load_sprites))
         .add_systems(OnEnter(GameState::Init),
             init_ui,
         )
@@ -159,18 +158,54 @@ fn setup_2d_cameras(mut commands: Commands) {
     // );
 }
 
-fn parse_url(mut game: ResMut<Game>){
-    #[cfg(target_arch = "wasm32")]
-    {
-        let url = wasm_only::parse_url();
+// fn parse_url(mut game: ResMut<Game>){
+//     #[cfg(target_arch = "wasm32")]
+//     {
+//         let url = wasm_only::parse_url();
 
-        info!("url={:?}",url);
+//         info!("url={:?}",url);
 
+//     }
+// }
+
+pub mod platform{
+    use super::*;
+
+    pub fn parse_url()->String{
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            non_wasm::parse_url()  
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            wasm_only::parse_url()
+        }
+    }
+
+    pub fn copy_url(url: String){
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            non_wasm::copy_url(url)        
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            wasm_only::copy_url(url)
+        }
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+mod non_wasm{
+    pub fn parse_url()->String{
+        "".to_owned()
+    }
+
+    pub fn copy_url(_url: String){
     }
 }
 
 #[cfg(target_arch = "wasm32")]
-pub mod wasm_only{
+mod wasm_only{
     use wasm_bindgen_futures::spawn_local;
     pub fn parse_url()->String{
         let window = web_sys::window().expect("Missing Window");

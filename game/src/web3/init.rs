@@ -26,6 +26,7 @@ use bevy_text_edit::{ TextEditable};
 use bevy_web3::types::U256;
 use std::collections::HashMap;
 use bevy_toast::{ToastEvent,ToastData};
+use crate::platform;
 
 
 #[derive(Debug,PartialEq)]
@@ -79,7 +80,7 @@ pub fn direct_user_interaction(
     card_query: Query<&CardComponent>,
     mut popup_draw_event: EventWriter<PopupDrawEvent>,
     mut commands: Commands,
-    
+    mut toast_event_writer: EventWriter<ToastEvent>,
 ) {
     let player_key=game.account_bytes.as_ref().map(|m| generate_key(m, &mut pkv));
     for (interaction, mut color, mut border_color, children) in &mut interaction_query {
@@ -95,7 +96,9 @@ pub fn direct_user_interaction(
                             //text.sections[0].value = "Press".to_string();
                             // *color = PRESSED_BUTTON.into();
                             // border_color.0 = Color::srgb(1.0,0.0,0.0);
-                
+                            *color = NORMAL_BUTTON.into();
+                            border_color.0 = Color::BLACK;
+                            
                             match button_type.target
                             {
                                 ActionType::Web3Actions(ref web3_action)=>
@@ -432,6 +435,13 @@ pub fn direct_user_interaction(
                                         },
                                         GameActions::ShowOriginalCards(_player)=>{
                                             //Todo!: Show player cards popup
+                                        },
+                                        GameActions::CopyMatchUrl=>{
+                                            let match_index=game.match_index;
+                                            let url = platform::parse_url();
+                                            let share_url=format!("{}?match_id={}",url,match_index);
+                                            platform::copy_url(share_url);
+                                            toast_event_writer.send(ToastEvent::ShowToast{data:ToastData{content:"Copied match url".to_owned(),timeout_secs:2.0, ..default()}});
                                         }
                                     }
                                         
