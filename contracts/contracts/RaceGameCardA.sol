@@ -8,6 +8,7 @@ import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
 import {IState} from './State.sol';
 
 interface IRaceGameCardA{
+    function getLatestCard(address user)external view returns(uint256 card);
     function getAllCards(address user) external view returns(uint256[] memory cards);
     function getCardProp(uint256 index) external view returns(IState.AnimalCard memory card);
     function mintRandomNft( address to,uint256[] memory randomWords, uint8 minRarity,uint256 quantity) external;
@@ -42,6 +43,10 @@ contract RaceGameCardA is ERC721AUpgradeable, OwnableUpgradeable{
     modifier isGameContract(){
         require (msg.sender == _gameContract, "Not game contract");
         _;
+    }
+
+    function getLatestCard(address user)external view returns(uint256 card){
+        return userCards[user][userCards[user].length-1];
     }
  
     function getAllCards(address user) external view returns(uint256[] memory cards){

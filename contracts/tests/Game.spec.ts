@@ -423,7 +423,7 @@ describe('init',()=>{
         expect(1).to.be.equal(1,"What the hell")
         //console.log("MockRevealVerifier ",(await MockRevealVerifier.getAddress()))
         //console.log("GameMock ", (await GameMock.getAddress()));
-        const [_owner,p1,p2]=await hre.ethers.getSigners();
+        const [owner,p1,p2]=await hre.ethers.getSigners();
         const players=[p1,p2];
         //Check card count
         expect(await GameCard.getAllCards(p1.address)).have.lengthOf(0);
@@ -447,6 +447,7 @@ describe('init',()=>{
         ).to.emit(VrfCoordinatorV2Mock, "RandomWordsFulfilled").withArgs(2,anyValue,anyValue,true);
         expect(await GameCard.getAllCards(p2.address)).have.lengthOf(nftCount);
 
+        const winningScore=12;
         const p1Cards=await GameCard.getPlayerCardProps(p1.address);
         const promises= p1Cards[1].map(m=>MockIState.getAnimalRarity(m[0]));
         const p1rarities=(await Promise.all(promises)).join(",")
@@ -474,7 +475,7 @@ describe('init',()=>{
 
         // console.log("p2.address",p2.address,"p1.address",p1.address,"owner.address",_owner.address);
         //Create match
-        await expect(GameMock.connect(p1).createNewMatch({x: keys[0].pkxy[0], y: keys[0].pkxy[1]},2,1,{value:hre.ethers.parseEther("0.0001")}))
+        await expect(GameMock.connect(p1).createNewMatch({x: keys[0].pkxy[0], y: keys[0].pkxy[1]},2,winningScore,1,{value:hre.ethers.parseEther("0.0001")}))
             .to.emit(GameMock,"RequestSent").withArgs(3,nftCount);
         await expect(
             VrfCoordinatorV2Mock.fulfillRandomWords(3, (await VRF.getAddress()))
@@ -695,5 +696,6 @@ describe('init',()=>{
         ).to.emit(VrfCoordinatorV2Mock, "RandomWordsFulfilled").withArgs(4,anyValue,anyValue,true);
         expect(await GameCard.getAllCards((await GameMock.matches(matchIndex)).winner)).have.lengthOf(nftCount+1n);
         
+        expect((await GameMock.matches(matchIndex)).winnersCard).eq(await GameCard.getLatestCard((await GameMock.matches(matchIndex)).winner));
     })
 })

@@ -13,7 +13,7 @@ import {IVRF} from './GameVRF.sol';
 import {IRaceZypher} from './RaceZypher.sol';
  
 interface IRaceGame{
-    function mintCallback(address to,uint256[] memory _randomWords,uint8 minAllowedRarity) external ;
+    function mintCallback(uint256 matchIndex, address to,uint256[] memory _randomWords,uint8 minAllowedRarity) external ;
     function envCardCallback(uint256 matchIndex, uint256[] memory _randomWords) external;
 }
 
@@ -33,6 +33,7 @@ contract RaceGame is Ownable{
     mapping(address=>uint256) public winCount;
     //player match mapping
     mapping(address=>uint256) public currentMatch;
+    mapping(uint256=>uint8) public winningScore;
     //matches
     mapping(uint256=>IState.Match) public matches;
     uint _matchCounter;
@@ -43,7 +44,6 @@ contract RaceGame is Ownable{
     IVRF public _vrf;
     event RequestSent(uint256 requestId, uint32 numWords);
     
-
    
 
     IRaceGameCardA cardSet;
@@ -61,7 +61,7 @@ contract RaceGame is Ownable{
     function updateCardSet(address cardSetAddress) external onlyOwner{
         cardSet = IRaceGameCardA(cardSetAddress );
     }
-
+ 
     function _nextMatchState(IState.Match storage _match) internal returns (IState.MatchState) {
         _match.state = IState.MatchState(uint256(_match.state) + 1);
         for(uint8 i=0;i<_match.playerCount;i++){
@@ -138,7 +138,7 @@ contract RaceGame is Ownable{
      
 
     //----------------CREATE NEW MATCH---------------------
-    function createNewMatch(Point memory publicKey, uint8 playerCount,uint topup
+    function createNewMatch(Point memory publicKey, uint8 playerCount,uint8 _winningScore, uint topup
     ) external payable
      isPlayerInit(msg.sender)
      isMatchEmpty(msg.sender){
@@ -148,10 +148,13 @@ contract RaceGame is Ownable{
             if(msg.value>0)
                 revert PayableError(0, msg.value);
         }
+        require (_winningScore<=WINNING_SCORE, "Winning score cannot be > 20");
+        
         address creator=msg.sender;
         //check if player is init
         //check match exists
         uint256 matchId=_createNewMatch(publicKey, creator,playerCount);
+        winningScore[matchId]=_winningScore;
         //Todo!:Should not be dependent on match
         _setEnvDeck(matchId);
     }
@@ -835,7 +838,7 @@ contract RaceGame is Ownable{
         for(uint8 i=0;i<scores.length;i++){
             _match.players[i].position += scores[i];
             _match.players[i].playerRevealProofIndex=0;
-            if(_match.players[i].position>=WINNING_SCORE){
+            if(_match.players[i].position>=winningScore[matchIndex]){
                 //win
                 // _match.isFinished=1;
                 winCount[_match.players[i].player]+=1 ;
@@ -876,12 +879,17 @@ contract RaceGame is Ownable{
         _;
     }
  
-    function mintCallback(address to,uint256[] memory _randomWords,uint8 minAllowedRarity) external
+    function mintCallback(uint256 matchIndex, address to,uint256[] memory _randomWords,uint8 minAllowedRarity) external
     isVRFContract 
     {
         
         cardSet.mintRandomNft(to,
             _randomWords,minAllowedRarity,_randomWords.length/2);
+        if (matchIndex>0){
+            uint256 latestCard=cardSet.getLatestCard(to);
+            IState.Match storage _match=matches[matchIndex];
+            _match.winnersCard=latestCard;
+        }
     }
 
     function envCardCallback(uint256 matchIndex,uint256[] memory _randomWords) external 
