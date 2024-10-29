@@ -14,8 +14,8 @@ pub use self::ui::*;
 pub use self::api::*;
 pub use self::popup::*;
  
-pub const GAME_CARD_CONTRACT_ADDRESS: &str= "0x989b8832b9091241a48ff13f87b3fc568cc4e7e4";
-pub const GAME_CONTRACT_ADDRESS: &str= "0xa12ef37772be09ac35562f189173e38cd4cc7fcd";
+pub const GAME_CARD_CONTRACT_ADDRESS: &str= "0xd239440f2de52f0468eaf8d85b793ec82fe400bb";
+pub const GAME_CONTRACT_ADDRESS: &str= "0xe7e06d2b8cefa83b1cd56f42d722b15d960c3056";
  
 
 impl Game{

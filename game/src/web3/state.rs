@@ -11,6 +11,7 @@ use std::hash::{Hash,Hasher};
 pub const VRF_MIN_BALANCE: u128=100000000000000u128;
 pub const MIN_CARD_COUNT: u128 =20;
 pub const DECK_SIZE: u64=20;
+pub const WINNING_SCORE: u8 = 12;
 
 #[derive(Clone,Eq,PartialEq,Debug,Hash,Default,States)]
 pub enum WalletState{

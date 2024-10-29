@@ -408,6 +408,11 @@
         "type": "uint8"
       },
       {
+        "internalType": "uint8",
+        "name": "_winningScore",
+        "type": "uint8"
+      },
+      {
         "internalType": "uint256",
         "name": "topup",
         "type": "uint256"
@@ -947,6 +952,11 @@
   {
     "inputs": [
       {
+        "internalType": "uint256",
+        "name": "matchIndex",
+        "type": "uint256"
+      },
+      {
         "internalType": "address",
         "name": "to",
         "type": "address"
@@ -1280,6 +1290,25 @@
         "internalType": "uint256",
         "name": "",
         "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "winningScore",
+    "outputs": [
+      {
+        "internalType": "uint8",
+        "name": "",
+        "type": "uint8"
       }
     ],
     "stateMutability": "view",
