@@ -15,10 +15,10 @@ const errorDecoder = ErrorDecoder.create()
 const LibraryAddress="0x9ecF20487e94B3832AD5284Ff15FaF278341aB4f";//"0x03D73a99f2151DC1b0969bdf436e6dF5f55Ec855";
 const MockRevealVerifierAddress="0x362D393756caAe6ECF434D34d5CD70E83bAD02EF";
 const MockShuffleVerifierAddress="0x1aab73Ff73c3e861955ad00c909B27c0AB5626EB";
-const GameCardAddress="0xd239440f2de52f0468eaf8d85b793ec82fe400bb";//"0x7A9B296Ad4c4c832e99127AAd6D58fD8bF8C46Dd";
+const GameCardAddress="0x5b0a97935cafad5b174e63d01360dad5303bdf19";//"0x7A9B296Ad4c4c832e99127AAd6D58fD8bF8C46Dd";
 const opBNBTestnetVRFAddress="0x2B30C31a17Fe8b5dd397EF66FaFa503760D4eaF0";
 const VRFAddress ="0x5ce2AB0ea6D7a300a4b440F6C381A35373a6A4a3";//"0x95b5E4AB677BabcbA12D780a86E5a0373480A35f";
-const GameAddress="0xe7e06d2b8cefa83b1cd56f42d722b15d960c3056";
+const GameAddress="0xe9893007f1bfcec9d655b33cc500cf0dd6648923";
 const ZypherAddress="0xe09f5310419e0d0bc4e72c02e21006f499a362ce";
 //const hre = require("hardhat");
 const hre =require("hardhat");
@@ -59,7 +59,7 @@ async function deployCard(){
     await sleep(30_000);
     const gameAddress=(String) (await gameCard.getAddress());
     console.log(`GameCard deployed to ${(gameAddress.toLowerCase())}`);
-    const tx=await gameCard.initialize('ZooClash','ZZC');
+    const tx=await gameCard.initialize('ZooClash','ZOC');
     console.log(await tx.wait());
     
 }

@@ -347,7 +347,7 @@ describe('init',()=>{
         await loadGame();
     })
 
-    xit('Test State',async()=>{
+    it('Test State',async()=>{
         const val=await MockIState.createCard(Number.parseInt(""+Math.random()*1000000),Number.parseInt(""+Math.random()*1000000),2);
         const card_prop = val[0];
         console.log("card_prop",card_prop);
@@ -359,67 +359,16 @@ describe('init',()=>{
         const r2=0;
         const t2=await MockIState.getRarity(r1,r2);
         const t3=await MockIState.getEnvCard(Number.parseInt(""+Math.random()*1000000),Number.parseInt(""+Math.random()*1000000));
+        const score = await MockIState.calculateAnimalScore(val,t3);
         console.log("envCard",t3)
         console.log("rarity test ",t2,r1,r2);
+        console.log("score",score);
         // const allcards=await MockIState.getAllAnimalCards();
         // console.log("allcards",allcards);
     })
+ 
 
-    // xit('Test Gas',async()=>{
-    //     const [owner]=await hre.ethers.getSigners();
-    //     const randomWords:bigint[]=[];
-    //     for(var i=0;i<40;i++){
-    //         randomWords.push(1n);
-    //     }
-    //     console.log("total mint gas",await GameCard.mintRandomNft.estimateGas((await owner.getAddress()),randomWords,
-    //     2,20));
-    // })
-    // xit('Test Shuffling',async()=>{
-    //     const key1 = {
-    //         sk: '0x03cef05cd7c1297e6b94dbd68a370213a2badb49a7167533d0971073c58673bd',
-    //         pk: '0x3b93e02ba3dc6029f47a34b8cb56b7740a0908db6996b0dbc11f2a2f21122813',
-    //         pkxy: [
-    //         '0x108f4dfc21fec087ffbb0fd807b343399ff0d3527c59b86059dbd53df37d37b8',
-    //         '0x132812212f2a1fc1dbb09669db08090a74b756cbb8347af42960dca32be0933b'
-    //         ]
-    //     }
-        
-    //     const key2 = {
-    //         sk: '0x035834c90c89d1f13b8c33851cfeb832b7bb98ea82968073e5c26ea0a6a055df',
-    //         pk: '0x467a434b5b376c3a0f0e14fec10c495da5061dc3887d5fb2371370238a87be06',
-    //         pkxy: [
-    //         '0x0fc2388eb7fce64437b65900d130b96fdb639fdd4af7f7ca12d5b2bbbef50fe0',
-    //         '0x06be878a23701337b25f7d88c31d06a55d490cc1fe140e0f3a6c375b4b437a46'
-    //         ]
-    //     }
-        
-    //     const gameKey=SE.aggregate_keys([key1.pk,key2.pk])
-    //     // const gameKey = SE.public_compress(aggregate_key);
-    //     const pkc = SE.refresh_joint_key(gameKey, deckSize)
-    //     const maskedCards = SE.init_masked_cards(gameKey, deckSize)
-    //     .map(({ card }:{card:any}) => card)
-
-    //     const {
-    //     cards: shuffledCards,
-    //     } = SE.shuffle_cards(gameKey, maskedCards)
-
-    //     const {
-    //     cards: shuffledCards2,
-    //     } = SE.shuffle_cards(gameKey, shuffledCards)
-
-    //     console.log("shuffledCards2",shuffledCards2[0]);
-    //     const target = shuffledCards2[0].map((bn: BigNumberish) => hre.ethers.toBeHex(bn))
-    //     const {
-    //       card: revealToken1,
-    //     } = SE.reveal_card_with_snark(key2.sk, target)
-        
-    //     const unmask_card=SE.unmask_card(key1.sk,target,revealToken1);
-    //     console.log("unmask",unmask_card);
-    // })
-
-
-
-    it('Game test',async()=>{
+    xit('Game test',async()=>{
         expect(1).to.be.equal(1,"What the hell")
         //console.log("MockRevealVerifier ",(await MockRevealVerifier.getAddress()))
         //console.log("GameMock ", (await GameMock.getAddress()));

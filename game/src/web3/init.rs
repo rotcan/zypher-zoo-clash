@@ -786,7 +786,7 @@ pub fn wallet_account(
                     Some(GameStatus::InitPlayer),None,None,&game);
                 
                  //Test toast
-                 toast_event_writer.send(ToastEvent::ShowToast{data: ToastData{content: "Loading...".to_owned(),timeout_secs: 15., 
+                 toast_event_writer.send(ToastEvent::ShowToast{data: ToastData{content: "Loading...".to_owned(),timeout_secs: 20., 
                 ..default()}});
  
                 //Test shuffle

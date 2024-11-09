@@ -40,7 +40,7 @@ pub fn load_sprites(
     asset_server: Res<AssetServer>
 ) {
     card_images.cards.insert(FACEDOWN_KEY.to_owned(),asset_server.load("cards/card-back.png"));
-    card_images.cards.insert(FACEUP_KEY.to_owned(),asset_server.load("cards/card-front-5.png"));
+    card_images.cards.insert(FACEUP_KEY.to_owned(),asset_server.load("cards/card-front-8.png"));
     card_images.cards.insert(ENVUP_KEY.to_owned(),asset_server.load("cards/env-front.png"));
     card_images.cards.insert(FINISH_KEY.to_owned(),asset_server.load("cards/finish-icon-2.png"));
     card_images.cards.insert(TRACK.to_owned(),asset_server.load("cards/track-block.png"));
@@ -56,9 +56,9 @@ pub fn load_sprites(
     card_images.cards.insert(D_SHEEP.to_owned(),asset_server.load("cards/d_sheep.png"));
     card_images.cards.insert(D_FROG.to_owned(),asset_server.load("cards/d_frog.png"));
     //ENEMY
-    card_images.cards.insert(E1.to_owned(),asset_server.load("cards/bear.png"));
-    card_images.cards.insert(E2.to_owned(),asset_server.load("cards/lion.png"));
-    card_images.cards.insert(E3.to_owned(),asset_server.load("cards/wolf.png"));
+    card_images.cards.insert(E1.to_owned(),asset_server.load("cards/lion.png"));
+    card_images.cards.insert(E2.to_owned(),asset_server.load("cards/wolf.png"));
+    card_images.cards.insert(E3.to_owned(),asset_server.load("cards/bear.png"));
     //GEOGRAPHY
     card_images.cards.insert(G1.to_owned(),asset_server.load("cards/farm.png"));
     card_images.cards.insert(G2.to_owned(),asset_server.load("cards/forest.png"));

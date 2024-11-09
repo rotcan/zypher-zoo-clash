@@ -855,8 +855,8 @@ pub struct ContractRequestTimer {
 
 impl Default for ContractRequestTimer{
     fn default()->Self{
-        let mut timer = Timer::from_seconds(3.0,TimerMode::Repeating);
-        timer.tick(Duration::from_secs_f32(3.0));
+        let mut timer = Timer::from_seconds(2.0,TimerMode::Repeating);
+        timer.tick(Duration::from_secs_f32(2.0));
         info!("ContractRequestTimer default");
         ContractRequestTimer{
             timer: timer

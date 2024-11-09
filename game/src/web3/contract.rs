@@ -283,21 +283,31 @@ pub fn process_contract_response(res: &CallResponse,
                                 };
                                 if let Some(card_props) = extract_vec(val[1].clone()).take() {
                                     if let Some(index)=get_player_index_by_address(&game, &address_bytes) {
-                                        let old_count = game.players_data[index].all_cards.all_card_props.keys().len();
-                                        game.players_data[index].all_cards.parse_all_card_props(
+                                        let current_player_data=&mut game.players_data[index];
+                                        let old_count = current_player_data.all_cards.all_card_props.keys().len();
+                                        current_player_data.all_cards.parse_all_card_props(
                                             parse_token_to_vec_uint(val[0].clone(),"Get Player card index field issue").unwrap(),
                                             parse_token_to_vec_vec_uint(Token::Array(card_props),"Get Player card props field issue").unwrap()
                                         );
 
-                                        let new_count = game.players_data[index].all_cards.all_card_props.keys().len();
+                                        // let new_count = current_player_data.all_cards.all_card_props.keys().len();
                                         if game.match_finished == true{
-                                            if new_count > MIN_CARD_COUNT as usize {
-                                                //
-                                                ui_update_event.send(UiUpdateEvent::UpdateWinningCard);
-                                            }else{
-                                                //info!("No new card added . Total cards = {:?}",new_count);
-                                                // ui_update_event.send(UiUpdateEvent::UpdateWinningCard);
+                                            if let Some(ref match_state) = game.match_state{
+                                                if match_state.winners_card != Uint::zero(){
+                                                    if let Some(_val) = current_player_data.all_cards.all_card_props.get(&match_state.winners_card){
+                                                        ui_update_event.send(UiUpdateEvent::UpdateWinningCard);
+                                                    }
+                                                    // if new_count > MIN_CARD_COUNT as usize {
+                                                    //     //
+                                                       
+                                                    // }else{
+                                                    //     //info!("No new card added . Total cards = {:?}",new_count);
+                                                    //     // ui_update_event.send(UiUpdateEvent::UpdateWinningCard);
+                                                    // }
+                                                }
+                                               
                                             }
+                                            
                                         }
                                         let mut counter=0;
                                         for (card_index,card) in game.players_data[index].all_cards.all_card_props.iter(){
@@ -1096,7 +1106,7 @@ pub fn request_contract_data(
         //info!("val.timer={:?}",val.timer);
         if val.timer.finished() 
         {
-            //  info!("timer match_state={:?}",game.match_state);
+            info!("request_contract_data timer finished");
             if game.match_finished == false
             {
                 if match_index > U256::zero() 
