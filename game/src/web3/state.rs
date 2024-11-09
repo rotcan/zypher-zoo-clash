@@ -11,6 +11,7 @@ use std::hash::{Hash,Hasher};
 pub const VRF_MIN_BALANCE: u128=100000000000000u128;
 pub const MIN_CARD_COUNT: u128 =20;
 pub const DECK_SIZE: u64=20;
+pub const WINNING_SCORE: u8 = 12;
 
 #[derive(Clone,Eq,PartialEq,Debug,Hash,Default,States)]
 pub enum WalletState{
@@ -854,8 +855,8 @@ pub struct ContractRequestTimer {
 
 impl Default for ContractRequestTimer{
     fn default()->Self{
-        let mut timer = Timer::from_seconds(3.0,TimerMode::Repeating);
-        timer.tick(Duration::from_secs_f32(3.0));
+        let mut timer = Timer::from_seconds(2.0,TimerMode::Repeating);
+        timer.tick(Duration::from_secs_f32(2.0));
         info!("ContractRequestTimer default");
         ContractRequestTimer{
             timer: timer

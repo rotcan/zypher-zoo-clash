@@ -85,7 +85,10 @@ pub fn update_winner_card( game: &Game, commands: &mut Commands,card_images: &Ca
             if let Some(ref match_state) = game.match_state{
                 let current_player_data=&game.players_data[index];
                 if match_state.winner == current_player_data.player_state.player {
-                    if let Some((_key,value)) = current_player_data.all_cards.all_card_props.last_key_value() {
+                    let last_value = match_state.winners_card;
+                    //if let Some((_key,value)) = current_player_data.all_cards.all_card_props.last_key_value() {
+                    if let Some(value) = current_player_data.all_cards.all_card_props.get(&last_value) {
+                    
                         //info!("update_winner_card value={:?}",value);
                         let key_idx=0;
                         let card_component=CardComponent{

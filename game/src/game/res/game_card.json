@@ -406,6 +406,25 @@
         "type": "address"
       }
     ],
+    "name": "getLatestCard",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "card",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      }
+    ],
     "name": "getPlayerCardProps",
     "outputs": [
       {

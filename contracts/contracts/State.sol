@@ -274,10 +274,10 @@ library IState{
         return uint8((prop>>3 + 8) & 127);
     }
 
-    function calculateAnimalScore(AnimalCard memory animal, EnvCard memory env) private pure returns(uint256){
+    function calculateAnimalScore(AnimalCard memory animal, EnvCard memory env) public pure returns(uint256){
         EnvCardType eType=EnvCardType(env.cardType);
         uint8 steps=getAnimalSteps(animal.prop);
-        uint8 weakness=getAnimalSteps(animal.prop);
+        uint8 weakness=getAnimalWeakness(animal.prop);
         if(eType == EnvCardType.Enemy){
             if(weakness>>env.card & 1 == 1){
                 if (steps>=2) {

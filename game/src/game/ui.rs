@@ -5,7 +5,7 @@ use bevy::{a11y::{
     prelude::*
 };
 use crate::web3::{Web3Actions,MenuButton,ActionType,GameContractIxType,GameActions,CardProp,EnvCard,
-    EnvCardGeography,EnvCardEnemy,MatchStateEnum,
+    EnvCardGeography,EnvCardEnemy,MatchStateEnum,WINNING_SCORE,
     get_player_addresses,get_player1_steps,get_player2_steps};
 use crate::style::NORMAL_BUTTON;
 use bevy_text_edit::{ TextEditFocus,TextEditable};
@@ -1589,13 +1589,16 @@ fn update_player1_cards(game: &Game, commands: &mut Commands,card_images: &CardI
                 for player_data in game.players_data.iter(){
                     if &player_data.player_state.player == address_bytes {
                         //info!("update_player1_cards player_board={:?} keys={:?}",player_data.player_state.player_board,player_data.all_cards.all_card_props.keys());
-                        //info!("update_player1_cards player_reveals={:?} {:?}",player_data.player_state.player_reveals[0].len(),player_data.player_state.player_reveals[0][0].len());
-                        let reveal_count = if player_data.player_state.player_reveals.len()>0 {
-                            player_data.player_state.player_reveals[0][0].len()
-                        }else{
-                            0
-                        };
-                        if reveal_count == match_state.player_count as usize {
+                        let current_reveals=player_data.player_state.player_reveals.iter().filter(|f| f.len()==match_state.player_count as usize).count();
+                        info!("update_player1_cards player_reveals={:?} {:?} {:?}",player_data.player_state.player_reveals[0].len(),player_data.player_state.player_reveals[0][0].len(),current_reveals);
+                        // let reveal_count = if player_data.player_state.player_reveals.len()>0 {
+                        //     //player_data.player_state.player_reveals[0][0].len()
+                        //     player_data.player_state.player_reveals[0].len()
+                        // }else{
+                        //     0
+                        // };
+                        //if reveal_count == match_state.player_count as usize {
+                        if current_reveals>0 {
                             if let Some(card) = player_data.all_cards.all_card_props.get(&player_data.player_state.player_board) {
                                 //info!("update_player1_cards card={:?}",card);
                                 let key_idx=player_data.player_state.player_board.as_usize();
@@ -1630,12 +1633,14 @@ fn update_player2_cards(game: &Game, commands: &mut Commands,card_images: &CardI
                     if &player_data.player_state.player != address_bytes {
                         //info!("update_player2_cards player_board={:?} keys={:?}",player_data.player_state.player_board,player_data.all_cards.all_card_props.keys());
                         //info!("update_player2_cards player_reveals={:?}",player_data.player_state.player_reveals[0].len());
-                        let reveal_count = if player_data.player_state.player_reveals.len()>0 {
-                            player_data.player_state.player_reveals[0][0].len()
-                        }else{
-                            0
-                        };
-                        if reveal_count == match_state.player_count  as usize {
+                        // let reveal_count = if player_data.player_state.player_reveals.len()>0 {
+                        //     player_data.player_state.player_reveals[0].len()
+                        // }else{
+                        //     0
+                        // };
+                        // if reveal_count == match_state.player_count  as usize {
+                        let current_reveals=player_data.player_state.player_reveals.iter().filter(|f| f.len()==match_state.player_count as usize).count();
+                        if current_reveals>0 {
                             if let Some(card) = player_data.all_cards.all_card_props.get(&player_data.player_state.player_board) {
                                 //info!("update_player2_cards card={:?}",card);
                                 let key_idx=player_data.player_state.player_board.as_usize();
@@ -1706,7 +1711,7 @@ fn add_player_legend(commands: &mut Commands, game: &Game,layer: usize)->Entity{
     
     legends_child_entity
 }
-fn add_track_entity(commands: &mut Commands,card_images: &CardImages, col_count: usize,player_position: Vec<usize>)->Entity{
+fn add_track_entity(commands: &mut Commands,card_images: &CardImages, col_count: usize,winning_score:usize, player_position: Vec<usize>)->Entity{
     let layer = MAIN_LAYER;
     let track_entity = commands.spawn(create_area_bundle(100.0,100.0,
         FlexDirection::Column,JustifyContent::FlexStart,Some(AlignItems::Center), Overflow::clip_y(),None,None,None, layer)).id();
@@ -1728,7 +1733,7 @@ fn add_track_entity(commands: &mut Commands,card_images: &CardImages, col_count:
                 width: Val::Percent(100.),height: Val::Percent(100.),layer,image_key:TRACK.to_owned(),
                 ..default()} )).id();
             commands.entity(col_entity).add_child(back_image);
-            if step_id==col_count-1 {
+            if step_id==winning_score{
                 let finish_icon =  commands.spawn(create_sprite_bundle(&card_images,StyleArgs{image_key: FINISH_KEY.to_owned(), position_type: PositionType::Absolute,
                     width: Val::Percent(100.),
                         height: Val::Percent(100.),
@@ -1778,13 +1783,13 @@ fn update_track_entity(game: &Game,commands: &mut Commands,card_images: &CardIma
     commands.entity(parent_entity).despawn_descendants();
     // let player_count=game.match_state.as_ref().map(|m| m.player_count);
     // let player_count=player_count.unwrap_or(2) as usize;
-    let steps=21;
+    let steps=21 as usize;
     let mut player_steps: Vec<usize>=vec![];
     //Todo! handle for multiple players
     get_player1_steps(&game).as_ref().map(|m| player_steps.push(*m));
     get_player2_steps(&game).as_ref().map(|m| player_steps.push(*m));
     
-    let track_entity = add_track_entity( commands, card_images,steps,player_steps);
+    let track_entity = add_track_entity( commands, card_images,steps,WINNING_SCORE as usize,player_steps);
     commands.entity(parent_entity).add_child(track_entity);
     
 }
@@ -1967,7 +1972,7 @@ pub fn create_player_card(commands: &mut Commands, card_images: &CardImages, car
                             //Add
                             let enemy=EnvCardEnemy::from_u8(index as u8);
                             let image_entity=commands.spawn(create_sprite_bundle(card_images,StyleArgs{image_key:enemy.get_image_key().to_owned() ,top: Val::Px(25.+(index as f32)*25.),position_type: PositionType::Absolute,
-                                width: Val::Px(25.),height: Val::Px(25.),left: Val::Px(115.), ..default()})).id();
+                                width: Val::Px(25.),height: Val::Px(25.),left: Val::Px(115.), ..StyleArgs::card_sprite()})).id();
                             commands.entity(parent).add_child(image_entity);
                         }
                     }
@@ -1976,7 +1981,7 @@ pub fn create_player_card(commands: &mut Commands, card_images: &CardImages, car
                 // let step_stat=create_stat(commands, &card_images,20.,20.,20.,40.,card_prop.steps,layer,"+");
                 let text=commands.spawn(create_text_bundle(format!("{}{}","+",card_prop.steps).as_str(),StyleArgs{layer,
                     position_type: PositionType::Absolute,color: Color::srgb(0.2,0.2,0.2),
-                    top:Val::Px(146.),left: Val::Percent(46.)
+                    top:Val::Px(148.),left: Val::Percent(48.)
                     ,..default()})).id();
 
                 // commands.entity(card_part).add_child(rarity_stat);

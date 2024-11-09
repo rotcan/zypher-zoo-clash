@@ -1,11 +1,10 @@
 use bevy::prelude::*;
 use bevy_web3::types::{H160};
 use bevy_web3::plugin::{WalletChannel,get_address_from_string,EthContract,tokens::{Uint,Tokenizable,Token}};
-use super::{Point,VRF_MIN_BALANCE};
-use crate::error::GameError;
-use crate::web3::{GameContractIxType,init_masked_cards,shuffle_cards,public_compress,convert_string_to_u256,
-    convert_vec_string_to_u256,
+use super::{Point,VRF_MIN_BALANCE,GameContractIxType,init_masked_cards,shuffle_cards,public_compress,convert_string_to_u256,
+    convert_vec_string_to_u256,WINNING_SCORE,
     verify_shuffled_cards,u256_to_string,PlayerAction};
+use crate::error::GameError;
 use zshuffle::utils::{MaskedCard};
 
 type SendResult<T>=Result<T,GameError>;
@@ -144,7 +143,7 @@ pub fn send_txn_create_match(wallet: &Res<WalletChannel>,
         1
     };
     let data: Vec<Token>=vec![Token::Tuple(vec![player_public_key.x.into_token(),
-    player_public_key.y.into_token()]),player_count.into_token(),topup.into_token()];
+    player_public_key.y.into_token()]),player_count.into_token(),WINNING_SCORE.into_token(),topup.into_token()];
 
 
     send_txn(ix_type, data,from_address.clone(),game_address.clone(),value,&contract,wallet,Some(30.))

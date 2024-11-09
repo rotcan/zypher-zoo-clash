@@ -217,7 +217,7 @@ contract GameVRF is VRFConsumerBase, ConfirmedOwner{
         if(s_requests[_requestId].requestType == 0){
             //Mint to user
             if(disableGame==0)
-            gameContract.mintCallback(s_requests[_requestId].to, _randomWords, s_requests[_requestId].minAllowedRarity);
+            gameContract.mintCallback(s_requests[_requestId].matchId, s_requests[_requestId].to, _randomWords, s_requests[_requestId].minAllowedRarity);
         }else{
              
 
